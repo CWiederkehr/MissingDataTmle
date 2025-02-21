@@ -1,0 +1,24 @@
+
+
+Struktur:
+
+model-based:
++01_general_functions.R   # Utility functions used across the project
++02_data_generation.R     # Scripts to simulate or load data
++03_inducing_missingness.R # Procedures to create missing data
++04_analysis.R            # Analysis routines, model fitting, etc.
++05_plots.R           # Visualization scripts
++intermediate_results
++Prior_results # provide a calulation of how Long one single apply_TMLE would take (don`t run tmle, just run plots with results and Maybe data gen&missing)
+###########-----> would it also go with n=1000 or n=500 ? or will it scre my pos.violation?
+
+design-based:
++ General_function  # Need to clarify that i use the functions of "Li" from his paper -> some add ons etc.
++ Data 
++ missingnes
++ Analysis 
++ plots
++intermediate_results
++Prior_results
+
++data
