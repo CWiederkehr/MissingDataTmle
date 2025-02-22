@@ -1,4 +1,4 @@
-
+Github
 
 Struktur:
 
@@ -22,3 +22,45 @@ design-based:
 +Prior_results
 
 +data
+
+
+
+
+
+
+-------------------------------
++ Paper MI-part: Change everything to PMM  
++ also is it checkable that we used m=10 instead of 100?
++ paar unterchiede zu Dashti?
+
+
+Offene Punkte:
+
+-SL-Mice für congeniality in Kombination mit SL in TMLE
+-Results und Conclusion kürzer?
+- Noch bisschen mehr zu RMSE?
+
+
+
+
+
+Main critical idea: (might be to offensive, i am lacking the confidence to actually state this)
+- In the literature it is often stated that MI should be prefered over CCA not just because of ist Efficiency but also because 
+  CC provides larger bias
+- There are a few papers which also underline the Benefits of CCA or some appropriate use cases for CC
+- Nevertheless if we consider more advanced multivariable missingness mechanism it becomes more eveident that the assumptions to be valid for applying MI
+  are actually rarly met.
+- Even so in the m-DAGs where MI should be valid it did worse than certain non-MI Methods or CCA 
+-> main reason for this is that it is not really sure whether congeniality is actually provided for SUperLearner Methods
+-> Efficiency is true according all sceanrios and also better Coverage, but regarding bias, MI is not really the best choice, especially under positivity Violation
+
+
+--> Here it would be possible to Claim that Mice with SL would be a great future project
+
+
+
+
+Future Research:  -might incoporate MI with SuperLearner
+                  - has been shown that MI with SuperLearner provides less biased estimates and better Coverage than MI CART and PMM
+                  - should be congenial with TMLE and SuperLearner, would be interesting to see if the best predictive model is better than the congenial Library
+                  - However it is hard to implement because of high computational demand for variance estimation
