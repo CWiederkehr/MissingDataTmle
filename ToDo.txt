@@ -25,7 +25,26 @@ design-based:
 
 
 
+Problems to handle:
+- i will need to restore the datasets into lists  (also missingness overview table, ps vio Graphs, just the easy results auto-saved!)
+- These lists have to be accessable via a for loop and then the 'apply_MI' function has to run through
+- for each m-Dag the list-Name should be "mDagT_DGP1_sce1_res"
+- if i apply my 'all_measure' function then i need to run over the for loop and loop over the lists, but i Need to Change
+  how the names are handled -> this is something i Need to check by Hand
+- If the big table is generated then i can apply easyly the plot functions
 
+-> Intermediate Results:
+i need to provide my intermediate Results, because its impossible for them to run simulation (needs days)
+
+
+
+Checkpoint:
+-make check if possible on LRZ Cloud for one single run on m=10 and 1000 datasets, and check if results are still same
+---> if so, then save the r-Version and all libraries!  (Put the notes in the library file)
+
+Einsparpotential:
+- analysis function -> Tmle auslagern (aber ist jetzt nicht so viel, was man sich spart)
+ 
 
 
 -------------------------------
