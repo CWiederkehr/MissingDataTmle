@@ -48,23 +48,13 @@ Einsparpotential:
 
 
 -------------------------------
-Paper-Work:
 
-+ Paper MI-part: Change everything to PMM  (but the categorical variable? -> should be stated)
-   -> maybe also important to note, that we implemented also the outcome for our imputation models
-   -> small table for all the interactions necessary?
-+ also is it checkable that we used m=10 instead of 100? by simulation with seed=5 yes; otherwise no
-
-+ Hal-TheorieTeil direkt zur modelbased simulation packen
-  -> wie positivität unterbringen? Prinzipiell ist es redundant im Haupteil, dass so zu lassen. Es reicht auch einfach nur das im Anhang ausfürhlicher zu erwähnen
-+ paar unterchiede zu Dashti?
 
 
 Offene Punkte:
 
 -SL-Mice für congeniality in Kombination mit SL in TMLE
--Results und Conclusion kürzer?
-- Noch bisschen mehr zu RMSE?
+-Konkreter Diskussionspunkt zu Dahsti Paper?
 
 
 
