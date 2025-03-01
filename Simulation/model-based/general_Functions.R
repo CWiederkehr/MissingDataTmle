@@ -185,7 +185,6 @@ check_positivity <- function(data, include_Z6 = FALSE) {
   return(positivity)
 }
 
-# Generate function to analyze proportion of missingness
 MissingProportion <- function(data_list) {
   
   # Check if Z6 is present in the first dataset
@@ -238,18 +237,6 @@ MissingProportion <- function(data_list) {
   mean_missing <- as.data.frame(mean_missing)
   row.names(mean_missing) <- row.names
   return(t(mean_missing))
-}
-
-calculate_CIProp <- function(Result_table) {
-  # create vector to store calculated Proportions
-  CILengthProportion <- vector(length = nrow(Result_table))
-  # for-loop for every method in results dataframe
-  for(i in 1:nrow(Result_table)) {
-    # divedes respective average CI-length through maximal occured CI-length
-    CILengthProportion[i] <- (Result_table$MeanCILength[i])/(max(Result_table$MeanCILength)) 
-  }
-  Result_table <- cbind(Result_table, CILengthProportion)
-  return(Result_table)
 }
 
 all_measures_TMLE <- function(results_list) {

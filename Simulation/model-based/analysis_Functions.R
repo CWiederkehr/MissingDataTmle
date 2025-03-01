@@ -1,5 +1,3 @@
-#### TMLE Functions ####
-
 
 merged_CC_TMLE <- function(data_list, cores = 4, truncation = TRUE) {
   
