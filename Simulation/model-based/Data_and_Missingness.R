@@ -329,27 +329,27 @@ mDAG_missingness <- function(data_list, coefs, m_dag, DGP = NULL) {
   }
   # Fixed coefficients for different m-DAGs
   fixed_coefs <- list(
-    J = list(
-      Z1 = 0.6,
-      Z2 = 0.6,
-      Z3 = 0.6,
-      Z4 = 0.6,
-      Z5 = -0.6,
-      Z6 = 0.2,
-      A = -0.6,
-      Y = 0.2
-    ),
-    I = list(
-      Z1 = 0.6,
-      Z2 = 0.6,
-      Z3 = 0.6,
-      Z4 = 0.6,
-      Z5 = -0.6,
-      Z6 = 0.2,
-      A = -0.6,
-      Y = 0.2
-    ),
     E = list(
+      Z1 = 0.6,
+      Z2 = 0.6,
+      Z3 = 0.6,
+      Z4 = 0.6,
+      Z5 = -0.6,
+      Z6 = 0.2,
+      A = -0.6,
+      Y = 0.2
+    ),
+    D = list(
+      Z1 = 0.6,
+      Z2 = 0.6,
+      Z3 = 0.6,
+      Z4 = 0.6,
+      Z5 = -0.6,
+      Z6 = 0.2,
+      A = -0.6,
+      Y = 0.2
+    ),
+    C = list(
       Z1 = 0.6,
       Z2 = 0.6,
       Z3 = 0.6,
@@ -359,7 +359,7 @@ mDAG_missingness <- function(data_list, coefs, m_dag, DGP = NULL) {
       A = -0.6,
       Y = 0
     ),
-    A = list(
+    B = list(
       Z1 = 0.6,
       Z2 = 0,
       Z3 = 0,
@@ -369,7 +369,7 @@ mDAG_missingness <- function(data_list, coefs, m_dag, DGP = NULL) {
       A = 0,
       Y = 0
     ),
-    T = list(
+    A = list(
       Z1 = 0,
       Z2 = 0,
       Z3 = 0,
@@ -587,35 +587,35 @@ apply_missingness_bigdata <- function(big_data_list, missingness_type, coef_list
 # variable coefficient list for all DGPs and missingness types
 coef_list <- list(
   DGP1 = list(
-    T = list(
+    A = list(
       MZ2 = list(intercept = -1.1, U = 0),
       MZ3 = list(intercept = -1.45, MZ2 = 2, U = 0),
       MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
       MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
       MY = list(intercept = -2.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.5, U = 0)
     ),
-    A = list(
+    B = list(
       MZ2 = list(intercept = -1.0, U = 0),
       MZ3 = list(intercept = -1.40, MZ2 = 2, U = 0),
       MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
       MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
       MY = list(intercept = -2.50, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.9, U = 0)
     ),
-    E = coefsE <- list(
+    C = coefsE <- list(
       MZ2 = list(intercept = -1.05, U = 0),
       MZ3 = list(intercept = -1.70, MZ2 = 2, U = 0),
       MZ4 = list(intercept = -3.10, MZ2 = 1.9, MZ3 = 1.9, U = 0),
       MA = list(intercept = -3.00, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
       MY = list(intercept = -3.10, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.9, U = 0)
     ),
-    I = coefsI <- list(
+    D = coefsI <- list(
       MZ2 = list(intercept = -1.05, U = 0),
       MZ3 = list(intercept = -1.75, MZ2 = 2.2, U = 0),
       MZ4 = list(intercept = -3.45, MZ2 = 2.1, MZ3 = 2.2, U = 0),
       MA = list(intercept = -3.20, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
       MY = list(intercept = -2.60, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
     ),
-    J = coefsJ <- list(
+    E = coefsJ <- list(
       MZ2 = list(intercept = -1.05, U = 0),
       MZ3 = list(intercept = -1.75, MZ2 = 2.1, U = 0),
       MZ4 = list(intercept = -3.30, MZ2 = 2.0, MZ3 = 2.0, U = 0),
@@ -624,35 +624,35 @@ coef_list <- list(
     )
   ),
   DGP2 = list(
-    T = list(
+    A = list(
       MZ2 = list(intercept = -1.1, U = 0),
       MZ3 = list(intercept = -1.45, MZ2 = 2, U = 0),
       MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
       MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
       MY = list(intercept = -2.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.5, U = 0)
     ),
-    A = list(
+    B = list(
       MZ2 = list(intercept = -1.40, U = 0),
       MZ3 = list(intercept = -1.85, MZ2 = 2.3, U = 0),
       MZ4 = list(intercept = -3.45, MZ2 = 2.0, MZ3 = 2.0, U = 0),
       MA = list(intercept = -2.60, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
       MY = list(intercept = -2.60, MZ2 = 1.3, MZ3 = 1.3, MZ4 = 1.3, MA = -1.3, U = 0)
     ),
-    E = list(
+    C = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.15, MZ2 = 2.3, U = 0),
       MZ4 = list(intercept = -3.60, MZ2 = 2.2, MZ3 = 2.2, U = 0),
       MA = list(intercept = -3.05, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
       MY = list(intercept = -2.90, MZ2 = 1.1, MZ3 = 1.1, MZ4 = 1.1, MA = -1.2, U = 0)
     ),
-    I = list(
+    D = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.10, MZ2 = 2.2, U = 0),
       MZ4 = list(intercept = -3.60, MZ2 = 2.1, MZ3 = 2.2, U = 0),
       MA = list(intercept = -3.45, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
       MY = list(intercept = -2.80, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.1, U = 0)
     ),
-    J = list(
+    E = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.10, MZ2 = 2.2, U = 0),
       MZ4 = list(intercept = -3.65, MZ2 = 2.2, MZ3 = 2.2, U = 0),
@@ -661,35 +661,35 @@ coef_list <- list(
     )
   ),
   DGP3 = list(
-    T = list(
+    A = list(
       MZ2 = list(intercept = -1.1, U = 0),
       MZ3 = list(intercept = -1.45, MZ2 = 2, U = 0),
       MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
       MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
       MY = list(intercept = -2.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.5, U = 0)
     ),
-    A = list(
+    B = list(
       MZ2 = list(intercept = -1.40, U = 0),
       MZ3 = list(intercept = -1.85, MZ2 = 2.3, U = 0),
       MZ4 = list(intercept = -3.45, MZ2 = 2.0, MZ3 = 2.0, U = 0),
       MA = list(intercept = -2.55, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
       MY = list(intercept = -2.60, MZ2 = 1.3, MZ3 = 1.3, MZ4 = 1.3, MA = -1.3, U = 0)
     ),
-    E = list(
+    C = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.10, MZ2 = 2.3, U = 0),
       MZ4 = list(intercept = -3.55, MZ2 = 2.2, MZ3 = 2.2, U = 0),
       MA = list(intercept = -3.05, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
       MY = list(intercept = -2.90, MZ2 = 1.1, MZ3 = 1.1, MZ4 = 1.1, MA = -1.2, U = 0)
     ),
-    I = list(
+    D = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.10, MZ2 = 2.2, U = 0),
       MZ4 = list(intercept = -3.60, MZ2 = 2.1, MZ3 = 2.2, U = 0),
       MA = list(intercept = -3.40, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
       MY = list(intercept = -2.8, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
     ),
-    J = list(
+    E = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.05, MZ2 = 2.0, U = 0),
       MZ4 = list(intercept = -3.55, MZ2 = 2.2, MZ3 = 2.2, U = 0),
@@ -698,35 +698,35 @@ coef_list <- list(
     )
   ),
   DGP4 = list(
-    T = list(
+    A = list(
       MZ2 = list(intercept = -1.1, U = 0),
       MZ3 = list(intercept = -1.45, MZ2 = 2, U = 0),
       MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
       MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
       MY = list(intercept = -2.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.5, U = 0)
     ),
-    A = list(
+    B = list(
       MZ2 = list(intercept = -1.40, U = 0),
       MZ3 = list(intercept = -1.85, MZ2 = 2.3, U = 0),
       MZ4 = list(intercept = -3.45, MZ2 = 2.0, MZ3 = 2.0, U = 0),
       MA = list(intercept = -2.55, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
       MY = list(intercept = -2.60, MZ2 = 1.3, MZ3 = 1.3, MZ4 = 1.3, MA = -1.3, U = 0)
     ),
-    E = list(
+    C = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.20, MZ2 = 2.3, U = 0),
       MZ4 = list(intercept = -3.55, MZ2 = 2.2, MZ3 = 2.2, U = 0),
       MA = list(intercept = -3.15, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
       MY = list(intercept = -2.95, MZ2 = 1.1, MZ3 = 1.1, MZ4 = 1.1, MA = -1.2, U = 0)
     ),
-    I = list(
+    D = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.20, MZ2 = 2.2, U = 0),
       MZ4 = list(intercept = -3.60, MZ2 = 2.1, MZ3 = 2.2, U = 0),
       MA = list(intercept = -3.50, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
       MY = list(intercept = -2.90, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
     ),
-    J = list(
+    E = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.15, MZ2 = 2.0, U = 0),
       MZ4 = list(intercept = -3.60, MZ2 = 2.2, MZ3 = 2.2, U = 0),
@@ -735,7 +735,7 @@ coef_list <- list(
     )
   ),
   DGP5 = list(
-    T = list(
+    A = list(
       MZ2 = list(intercept = -1.1, U = 0),
       MZ3 = list(intercept = -1.50, MZ2 = 2.2, U = 0),
       MZ4 = list(intercept = -3.05, MZ2 = 2, MZ3 = 2, U = 0),
@@ -743,7 +743,7 @@ coef_list <- list(
       MA = list(intercept = -2.95, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, MZ6 = 1.8, U = 0),
       MY = list(intercept = -2.65, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, MZ6 = 1.6, MA = -2.8, U = 0)
     ),
-    A = list(
+    B = list(
       MZ2 = list(intercept = -1.40, U = 0),
       MZ3 = list(intercept = -1.85, MZ2 = 2.4, U = 0),
       MZ4 = list(intercept = -3.50, MZ2 = 2.0, MZ3 = 2.0, U = 0),
@@ -751,7 +751,7 @@ coef_list <- list(
       MA = list(intercept = -2.80, MZ2 = 1.4, MZ3 = 1.4, MZ4 = 1.4, MZ6 = 1.4, U = 0),
       MY = list(intercept = -2.75, MZ2 = 1.3, MZ3 = 1.3, MZ4 = 1.3, MZ6 = 1.3, MA = -2.2, U = 0)
     ),
-    E = list(
+    C = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.20, MZ2 = 2.3, U = 0),
       MZ4 = list(intercept = -3.55, MZ2 = 2.2, MZ3 = 2.2, U = 0),
@@ -759,7 +759,7 @@ coef_list <- list(
       MA = list(intercept = -3.50, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, MZ6 = 1.4, U = 0),
       MY = list(intercept = -3.10, MZ2 = 1.1, MZ3 = 1.1, MZ4 = 1.1, MZ6 = 1.4, MA = -2.2, U = 0)
     ),
-    I = list(
+    D = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.20, MZ2 = 2.2, U = 0),
       MZ4 = list(intercept = -3.60, MZ2 = 2.1, MZ3 = 2.2, U = 0),
@@ -767,7 +767,7 @@ coef_list <- list(
       MA = list(intercept = -3.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MZ6 = 1.4, U = 0),
       MY = list(intercept = -3.05, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MZ6 = 1.4, MA = -2.2, U = 0)
     ),
-    J = list(
+    E = list(
       MZ2 = list(intercept = -1.50, U = 0),
       MZ3 = list(intercept = -2.15, MZ2 = 2.0, U = 0),
       MZ4 = list(intercept = -3.60, MZ2 = 2.2, MZ3 = 2.2, U = 0),

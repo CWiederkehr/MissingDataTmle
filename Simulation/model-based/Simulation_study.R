@@ -7,7 +7,7 @@ source("~/GitHub/MissingDataTmle/Simulation/model-based/analysis_Functions.R")
 #### DGP ####
 
 # Set simulation parameters
-Sim <- 10   # Number of repetitions
+Sim <- 20   # Number of repetitions
 n <- 2000     # Sample size per dataset
 
 dgp_list <- c("DGP1", "DGP2", "DGP3", "DGP4", "DGP5")
@@ -23,7 +23,7 @@ for (dgp in dgp_list) {
   }
 }
 
-save(big_data_list, file = "../model-based/Results/data_list.RData")
+save(big_data_list, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/data_list.RData")
 
 #### Full data assessment #####
 
@@ -35,7 +35,7 @@ for (data_name in names(big_data_list)) {
 }
 
 full_data_proportions
-save(full_data_proportions, file = "../model-based/Results/data_proportions.RData")
+save(full_data_proportions, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/data_proportions.RData")
 
 # Check positivity violation in data
 full_positivity_results <- list()
@@ -45,17 +45,17 @@ for (data_name in names(big_data_list)) {
 }
 
 full_positivity_results
-save(full_positivity_results, file = "../model-based/Results/positivity_results.RData")
+save(full_positivity_results, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/positivity_results.RData")
 
 # Check power of effect
 effective_power_results <- check_effective_power_bigdata(big_data_list, cores = 10)
 effective_power_results
-save(effective_power_results, file = "../model-based/Results/effective_power_results.RData")
+save(effective_power_results, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/effective_power_results.RData")
 
 
 #### Induce Missingness ####
 
-missingness_types <- c("T", "A", "E", "I", "J")
+missingness_types <- c("A", "B", "C", "D", "E")
 
 all_missingnes_data <- list()      # Will store the modified (missingness-induced) datasets
 all_missing_proportions <- list()  # Will store the missing proportions
@@ -85,7 +85,7 @@ for (m_type in missingness_types) {
   }
 }
 
-save(all_missingnes_data, file = "../model-based/Results/all_missingnes_data.RData")
+save(all_missingnes_data, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/all_missingnes_data.RData")
 
 
 # Create a list to store the missingness data frames for each DGP
@@ -108,7 +108,7 @@ for(d in 1:5) {
 
 # Check missingness for the DGPs
 missing_proportion_list 
-save(missing_proportion_list, file = "../model-based/Results/missing_proportion_list.RData")
+save(missing_proportion_list, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/missing_proportion_list.RData")
 
 
 
@@ -117,7 +117,7 @@ save(missing_proportion_list, file = "../model-based/Results/missing_proportion_
 
 all_results <- list()
 
-for (orig_key in names(big_data_list)) {
+for (orig_key in names(all_missingnes_data)) {
   
   matches <- regmatches(orig_key, regexec("DGP(\\d+)_sce(\\d+)", orig_key))[[1]]
   if (length(matches) < 3) {
@@ -129,7 +129,7 @@ for (orig_key in names(big_data_list)) {
   
   # Call the apply_all_methods function for this element, passing the proper DGP
   method_res <- apply_all_methods(
-    data_list = big_data_list[[orig_key]], 
+    data_list = all_missingnes_data[[orig_key]], 
     m = 5, 
     cores = 10, 
     DGP = DGP, 
@@ -143,14 +143,17 @@ for (orig_key in names(big_data_list)) {
   all_results[[new_key]] <- method_res
 }
 
-all_results <- all_results5
+save(all_results, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/all_results.RData")
 
-# Step 1. Make sure each element from all_results is assigned to the global environment.
+
+#### Result-Plots ####
+
+# Make sure each element from all_results is assigned to the global environment.
 for(nm in names(all_results)) {
   assign(nm, all_results[[nm]])
 }
 
-# Step 2. Create a list of names and use these to call all_measures_TMLE, preserving the object names.
+# Create a list of names and use these to call all_measures_TMLE, preserving the object names.
 all_obj_names <- names(all_results)
 all_measures_list <- lapply(all_obj_names, function(nm) {
   expr <- substitute(all_measures_TMLE(x), list(x = as.name(nm)))
@@ -158,7 +161,6 @@ all_measures_list <- lapply(all_obj_names, function(nm) {
 })
 names(all_measures_list) <- all_obj_names
 
-# Step 3. Combine all results in one big data frame.
 big_table <- do.call(rbind, all_measures_list)
 
 # Post-processing: adjusting factor levels, etc.

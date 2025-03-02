@@ -1,6 +1,5 @@
 
 
-# mDags beschriftung ändern -> ueberall im Code
 # bringe auch all-results in plots rein
 
 
