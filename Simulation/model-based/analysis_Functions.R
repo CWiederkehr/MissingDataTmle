@@ -1026,7 +1026,7 @@ apply_all_methods <- function(data_list, m = 10, cores = 4, DGP = "DGP1", trunca
   MI_RF_res <- merged_MI_RF_TMLE(data_list, m, cores, DGP, truncation = truncation, maxit = maxit)
   
   print("Amelia")
-  MI_Amelia_res <- merged_MI_Amelia_TMLE(data_list, m, cores, DGP, truncation = truncation, maxit = maxit)
+  MI_Amelia_res <- merged_MI_Amelia_TMLE(data_list, m, cores, DGP, truncation = truncation)
   
   print("Int")
   MI_Int_res <- merged_MI_Int_TMLE(data_list, m, cores, DGP, truncation = truncation, maxit = maxit)

@@ -539,7 +539,52 @@ mDAG_missingness <- function(data_list, coefs, m_dag, DGP = NULL) {
   return(data_list)
 }
 
-# master coefficient list for all DGPs and missingness types
+apply_missingness_bigdata <- function(big_data_list, missingness_type, coef_list) {
+  result <- list()
+  
+  for (name in names(big_data_list)) {
+    # Expected name pattern: "sceX_DGPY" (e.g., "sce1_DGP1")
+    matches <- regmatches(name, regexec("sce(\\d+)_DGP(\\d+)", name))[[1]]
+    if (length(matches) < 3) {
+      stop(paste("Name", name, "does not match the expected pattern 'sceX_DGPY'."))
+    }
+    
+    # Extract Scenario and DGP numbers (as integers)
+    scenario <- as.integer(matches[2])
+    DGP <- as.integer(matches[3])
+    
+    # Build DGP key (e.g., "DGP1")
+    dgp_key <- paste0("DGP", DGP)
+    
+    # Look up the appropriate coefficient list for this DGP and missingness type
+    if (!is.null(coef_list[[dgp_key]][[missingness_type]])) {
+      current_coefs <- coef_list[[dgp_key]][[missingness_type]]
+    } else {
+      stop(paste("Coefficient list for", dgp_key, "and missingness type", missingness_type, "not found."))
+    }
+    
+    # Apply the missingness simulation using mDAG_missingness
+    modified_data <- mDAG_missingness(
+      data_list = big_data_list[[name]],
+      coefs = current_coefs,
+      m_dag = missingness_type,
+      DGP = dgp_key
+    )
+    
+    # Compute missingness summary using MissingProportion
+    missing_summary <- MissingProportion(modified_data)
+    
+    # Store both outputs in a temporary list (to be renamed later)
+    result[[name]] <- list(
+      modified_data = modified_data,
+      missing_summary = missing_summary
+    )
+  }
+  
+  return(result)
+}
+
+# variable coefficient list for all DGPs and missingness types
 coef_list <- list(
   DGP1 = list(
     T = list(
@@ -732,48 +777,3 @@ coef_list <- list(
     )
   )
 )
-
-apply_missingness_bigdata <- function(big_data_list, missingness_type, coef_list) {
-  result <- list()
-  
-  for (name in names(big_data_list)) {
-    # Expected name pattern: "sceX_DGPY" (e.g., "sce1_DGP1")
-    matches <- regmatches(name, regexec("sce(\\d+)_DGP(\\d+)", name))[[1]]
-    if (length(matches) < 3) {
-      stop(paste("Name", name, "does not match the expected pattern 'sceX_DGPY'."))
-    }
-    
-    # Extract Scenario and DGP numbers (as integers)
-    scenario <- as.integer(matches[2])
-    DGP <- as.integer(matches[3])
-    
-    # Build DGP key (e.g., "DGP1")
-    dgp_key <- paste0("DGP", DGP)
-    
-    # Look up the appropriate coefficient list for this DGP and missingness type
-    if (!is.null(coef_list[[dgp_key]][[missingness_type]])) {
-      current_coefs <- coef_list[[dgp_key]][[missingness_type]]
-    } else {
-      stop(paste("Coefficient list for", dgp_key, "and missingness type", missingness_type, "not found."))
-    }
-    
-    # Apply the missingness simulation using mDAG_missingness
-    modified_data <- mDAG_missingness(
-      data_list = big_data_list[[name]],
-      coefs = current_coefs,
-      m_dag = missingness_type,
-      DGP = dgp_key
-    )
-    
-    # Compute missingness summary using MissingProportion
-    missing_summary <- MissingProportion(modified_data)
-    
-    # Store both outputs in a temporary list (to be renamed later)
-    result[[name]] <- list(
-      modified_data = modified_data,
-      missing_summary = missing_summary
-    )
-  }
-  
-  return(result)
-}

@@ -7,7 +7,7 @@ source("~/GitHub/MissingDataTmle/Simulation/model-based/analysis_Functions.R")
 #### DGP ####
 
 # Set simulation parameters
-Sim <- 1000   # Number of repetitions
+Sim <- 10   # Number of repetitions
 n <- 2000     # Sample size per dataset
 
 dgp_list <- c("DGP1", "DGP2", "DGP3", "DGP4", "DGP5")
@@ -23,6 +23,8 @@ for (dgp in dgp_list) {
   }
 }
 
+save(big_data_list, file = "../model-based/Results/data_list.RData")
+
 #### Full data assessment #####
 
 # Check data proportions
@@ -33,7 +35,7 @@ for (data_name in names(big_data_list)) {
 }
 
 full_data_proportions
-
+save(full_data_proportions, file = "../model-based/Results/data_proportions.RData")
 
 # Check positivity violation in data
 full_positivity_results <- list()
@@ -43,11 +45,12 @@ for (data_name in names(big_data_list)) {
 }
 
 full_positivity_results
+save(full_positivity_results, file = "../model-based/Results/positivity_results.RData")
 
 # Check power of effect
 effective_power_results <- check_effective_power_bigdata(big_data_list, cores = 10)
 effective_power_results
-
+save(effective_power_results, file = "../model-based/Results/effective_power_results.RData")
 
 
 #### Induce Missingness ####
@@ -82,10 +85,11 @@ for (m_type in missingness_types) {
   }
 }
 
+save(all_missingnes_data, file = "../model-based/Results/all_missingnes_data.RData")
 
 
 # Create a list to store the missingness data frames for each DGP
-missing_dgp_list <- list()
+missing_proportion_list <- list()
 
 # Loop over DGP numbers 1 to 5
 for(d in 1:5) {
@@ -99,13 +103,69 @@ for(d in 1:5) {
   rownames(df_dgp) <- keys_dgp
   
   # Store the data frame in the list with the name of the DGP (e.g., "DGP1")
-  missing_dgp_list[[dgp_pattern]] <- as.data.frame(df_dgp)
+  missing_proportion_list[[dgp_pattern]] <- as.data.frame(df_dgp)
 }
 
 # Check missingness for the DGPs
-missing_dgp_list
+missing_proportion_list 
+save(missing_proportion_list, file = "../model-based/Results/missing_proportion_list.RData")
 
 
 
+#### Analysis ####
 
 
+all_results <- list()
+
+for (orig_key in names(big_data_list)) {
+  
+  matches <- regmatches(orig_key, regexec("DGP(\\d+)_sce(\\d+)", orig_key))[[1]]
+  if (length(matches) < 3) {
+    stop(paste("Name", orig_key, "does not match the expected pattern 'DGP<dgp>_sce<scenario>'."))
+  }
+  
+  DGP <- paste0("DGP", matches[2])
+  scenario <- matches[3]  # as a string
+  
+  # Call the apply_all_methods function for this element, passing the proper DGP
+  method_res <- apply_all_methods(
+    data_list = big_data_list[[orig_key]], 
+    m = 5, 
+    cores = 10, 
+    DGP = DGP, 
+    truncation = TRUE, 
+    maxit = 5
+  )
+  
+  new_key <- paste0(orig_key, "_res")
+  
+  # Store the result under the new key
+  all_results[[new_key]] <- method_res
+}
+
+
+# Step 1. Make sure each element from all_results is assigned to the global environment.
+for(nm in names(all_results)) {
+  assign(nm, all_results[[nm]])
+}
+
+# Step 2. Create a list of names and use these to call all_measures_TMLE, preserving the object names.
+all_obj_names <- names(all_results)
+all_measures_list <- lapply(all_obj_names, function(nm) {
+  expr <- substitute(all_measures_TMLE(x), list(x = as.name(nm)))
+  eval(expr, envir = .GlobalEnv)
+})
+names(all_measures_list) <- all_obj_names
+
+# Step 3. Combine all results in one big data frame.
+big_table <- do.call(rbind, all_measures_list)
+
+# Post-processing: adjusting factor levels, etc.
+big_table$Scenario <- factor(big_table$Scenario, levels = c("Scenario1", "Scenario2", "Scenario3"))
+big_table$Method <- factor(big_table$Method, levels = c("CC", "Ext", "Ext MCMI", "MI PMM", "MI Int", "MI CART", "MI CART MI", "MI RF", "MI RF MI", "MI Amelia"))
+big_table$DGP <- as.numeric(gsub("DGP", "", big_table$DGP))
+rownames(big_table) <- sub(".*\\.", "", rownames(big_table))
+
+# Inspect the resulting big_table
+str(big_table)
+head(big_table)
