@@ -143,6 +143,7 @@ for (orig_key in names(big_data_list)) {
   all_results[[new_key]] <- method_res
 }
 
+all_results <- all_results5
 
 # Step 1. Make sure each element from all_results is assigned to the global environment.
 for(nm in names(all_results)) {
