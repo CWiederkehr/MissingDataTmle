@@ -104,85 +104,170 @@ check_data <- function(data_list) {
   return(Proportion)
 }
 
-check_positivity <- function(data, include_Z6 = FALSE) {
+check_positivity <- function(data_list) {
+  
+  include_Z6 <- "Z6" %in% names(data_list[[1]])
+  
   # Define the propensity score model formula based on include_Z6
   if (include_Z6) {
     formula <- A ~ Z1 + Z2 + Z3 + Z4 + Z5 + Z6 + B + 
-      Z1 : Z3 + Z1 : Z4 + Z1 : Z5 + Z3 : Z4 + Z3 : Z5 + Z4 : Z5 + 
-      Z1 : Z6 + Z4 : Z6 + Z5 : Z6
+      Z1:Z3 + Z1:Z4 + Z1:Z5 + Z3:Z4 + Z3:Z5 + Z4:Z5 + 
+      Z1:Z6 + Z4:Z6 + Z5:Z6
   } else {
     formula <- A ~ Z1 + Z2 + Z3 + Z4 + Z5 + B + 
-      Z1 : Z3 + Z1 : Z4 + Z1 : Z5 + Z3 : Z4 + Z3 : Z5 + Z4 : Z5
+      Z1:Z3 + Z1:Z4 + Z1:Z5 + Z3:Z4 + Z3:Z5 + Z4:Z5
   }
   
-  # Start timing
-  start_time <- Sys.time()
-  
+  # Set up parallel backend for speed
   total_cores <- 4
   cores_per_task <- 2
   num_clusters <- total_cores / cores_per_task
-  
-  # Set up parallel backend
   cl <- makeCluster(num_clusters)
   registerDoParallel(cl, cores_per_task)
   
-  # Create respective lists for models and weights using foreach
-  results <- foreach(i = 1:length(data), .packages = c('glmnet')) %dopar% {
-    psm <- glm(formula, family = binomial, data = data[[i]]) # Propensity-score model
-    gW <- predict(psm, type = "response") # Propensity score values
-    count <- ifelse(any(gW < 0.002 | (1 - gW) < 0.002), 1, 0) # Check if probability in dataset is smaller than 0.002
-    sum_obs <- sum(ifelse(gW < 0.002 | (1 - gW) < 0.002, 1, 0)) # Count number of observations with smaller probability
-    return(list(gW = gW, count = count, sum_obs = sum_obs))
-    gc()
+  # Apply the propensity score model to each dataset in parallel
+  results <- foreach(i = 1:length(data_list), .packages = "glmnet") %dopar% {
+    psm <- glm(formula, family = binomial, data = data_list[[i]])
+    gW <- predict(psm, type = "response")
+    # Count the number of observations with very small probabilities (violations)
+    sum_obs <- sum(gW < 0.002 | (1 - gW) < 0.002)
+    list(sum_obs = sum_obs)
   }
   
-  # Stop parallel backend
+  # Stop the parallel cluster
   stopCluster(cl)
   
-  # End timing
-  end_time <- Sys.time()
-  print(end_time - start_time)
+  # Extract the counts from each dataset
+  sum_vec <- sapply(results, function(x) x$sum_obs)
   
-  # Extract results
-  gW_list <- lapply(results, `[[`, 'gW')
-  count_vec <- sapply(results, `[[`, 'count')
-  sum_vec <- sapply(results, `[[`, 'sum_obs')
+  # Calculate the average percentage of violations per dataset
+  prop_per_dataset <- (mean(sum_vec) / nrow(data_list[[1]])) * 100
   
-  # Random sample model
-  sample_nr <- sample(x = 1:length(data), size = 1)
-  psm <- glm(formula, family = binomial, data = data[[sample_nr]])
+  return(prop_per_dataset)
+}
+
+check_effective_power <- function(DGP, Scenario, data_list, cores = 10) {
   
-  # Create title based on pattern in the name of the input object "data"
-  if (grepl("sce1", deparse(substitute(data)))) {
-    title <- "Scenario 1"
-  } else if (grepl("sce2", deparse(substitute(data)))) {
-    title <- "Scenario 2"
-  } else if (grepl("sce3", deparse(substitute(data)))) {
-    title <- "Scenario 3"
+  # Step 1: Determine True_ATE based on DGP and Scenario
+  if (DGP == 1 && Scenario == 1) {
+    True_ATE <- 0.20
+  } else if (DGP == 1 && Scenario == 2) {
+    True_ATE <- 0.20
+  } else if (DGP == 1 && Scenario == 3) {
+    True_ATE <- 0.24
+  } else if (DGP == 2 && Scenario == 1) {
+    True_ATE <- 0.18
+  } else if (DGP == 2 && Scenario == 2) {
+    True_ATE <- 0.20
+  } else if (DGP == 2 && Scenario == 3) {
+    True_ATE <- 0.23
+  } else if (DGP == 3 && Scenario == 1) {
+    True_ATE <- 0.18
+  } else if (DGP == 3 && Scenario == 2) {
+    True_ATE <- 0.19
+  } else if (DGP == 3 && Scenario == 3) {
+    True_ATE <- 0.22
+  } else if (DGP == 4 && Scenario == 1) {
+    True_ATE <- 0.18
+  } else if (DGP == 4 && Scenario == 2) {
+    True_ATE <- 0.20
+  } else if (DGP == 4 && Scenario == 3) {
+    True_ATE <- 0.22
+  } else if (DGP == 5 && Scenario == 1) {
+    True_ATE <- 0.18
+  } else if (DGP == 5 && Scenario == 2) {
+    True_ATE <- 0.20
+  } else if (DGP == 5 && Scenario == 3) {
+    True_ATE <- 0.22
   } else {
-    title <- "Unknown Scenario"
+    stop("Unknown DGP and Scenario combination. Please define True_ATE for this combination.")
   }
   
-  gW <- predict(psm, type = "response") # Propensity score values
-  df <- cbind(data[[sample_nr]], gW) # Create df for ggplot2
-  df$A <- as.factor(ifelse(df$A == 0, "Control", "Treatment"))
+  # Step 2: Map DGP to the appropriate formula type for model estimation
+  if (DGP %in% c(1, 2, 3)) {
+    DGP_type <- "DGP1"
+  } else if (DGP == 4) {
+    DGP_type <- "DGP4"
+  } else if (DGP == 5) {
+    DGP_type <- "DGP5"
+  } else {
+    stop("Invalid DGP value.")
+  }
   
-  positivity <- vector("list", length = 5)
-  positivity[[1]] <- paste("Proportion of datasets with violations:", sum(count_vec) / length(data))
-  positivity[[2]] <- paste("Percentage of violations in each dataset:", (mean(sum_vec)/nrow(data[[1]]))*100, "%" )
-  positivity[[3]] <- summary(as.vector(unlist(gW_list)))
-  positivity[[4]] <- ggplot(data = df, aes(x = gW, color = A)) + 
-    geom_density() + 
-    scale_x_continuous(name = "Propensity Score P(A=1|W) and P(A=0|W)", limits = c(0, 1), breaks = c(0, 0.25, 0.50, 0.75, 1), position = 'bottom') +
-    scale_y_continuous(name = "Probability density function") + 
-    theme(legend.position = "right", plot.title = element_text(hjust = 0.5)) +
-    ggtitle(title)
+  # Step 3: Estimate the models using a parallelized approach
+  # Register parallel backend
+  cl <- makeCluster(cores)
+  registerDoParallel(cl)
   
-  names(positivity) <- c("DatasetViolations", "ProportionPerDataset", "OverallDistribution", "RandomPSDensitiy", "ComputationTime")
+  # Define the formula based on DGP_type
+  formula <- switch(DGP_type,
+                    "DGP1" = Y ~ Z1 + Z2 + Z3 + Z4 + Z5 + A +
+                      Z1:Z3 + Z1:Z4 + Z1:Z5 + 
+                      Z3:Z4 + Z3:Z5 + Z4:Z5 + 
+                      Z1:Z2:Z4 + Z1:Z2:Z5 + Z1:Z4:Z5 + Z2:Z4:Z5 + Z1:Z2:Z4:Z5,
+                    "DGP4" = Y ~ Z1 + Z2 + Z3 + Z4 + Z5 + A +
+                      Z1:Z3 + Z1:Z4 + Z1:Z5 +
+                      Z3:Z4 + Z3:Z5 + Z4:Z5 +
+                      Z1:Z4:Z2 + Z1:Z5:Z2 + Z1:Z4:Z5 + Z4:Z5:Z2 + Z1:Z4:Z5:Z2,
+                    "DGP5" = Y ~ Z1 + Z2 + Z3 + Z4 + Z5 + Z6 + A +
+                      Z1:Z3 + Z1:Z4 + Z1:Z5 +
+                      Z3:Z4 + Z3:Z5 + Z4:Z5 +
+                      Z1:Z6 + Z4:Z6 + Z5:Z6 +
+                      Z1:Z4:Z6 + Z1:Z5:Z6 + Z1:Z4:Z5 + Z4:Z5:Z6 + Z1:Z4:Z5:Z6,
+                    stop("Invalid DGP type")
+  )
   
-  positivity[[5]] <- end_time - start_time
+  # Parallel model estimation
+  results <- foreach(i = 1:length(data_list), .packages = 'stats') %dopar% {
+    data <- data_list[[i]]
+    model <- lm(formula, data = data)
+    coef_A <- coef(model)["A"]
+    var_A <- vcov(model)["A", "A"]
+    return(list(coef_A = coef_A, var_A = var_A))
+  }
   
-  return(positivity)
+  # Stop the cluster after model estimation
+  stopCluster(cl)
+  
+  # Step 4: Calculate Effective Power
+  # Extract the estimates and variances
+  estimates <- sapply(results, function(x) x$coef_A)
+  variances <- sapply(results, function(x) x$var_A)
+  
+  # Compute the 95% confidence interval bounds for each simulation
+  CI_lower <- estimates - 1.96 * sqrt(variances)
+  CI_upper <- estimates + 1.96 * sqrt(variances)
+  
+  # Effective power is the proportion of simulations where the CI excludes zero.
+  effective_power <- mean((CI_upper < 0) | (CI_lower > 0))
+  
+  # Return a list with the True_ATE and the effective power
+  return(list(True_ATE = True_ATE, effective_power = effective_power))
+}
+
+check_effective_power_bigdata <- function(big_data_list, cores = 10) {
+
+  results <- list()
+  # Loop over each element in big_data_list
+  for (name in names(big_data_list)) {
+    # Extract Scenario and DGP from the name using a regex pattern
+    matches <- regmatches(name, regexec("sce(\\d+)_DGP(\\d+)", name))[[1]]
+    if (length(matches) < 3) {
+      stop(paste("Name", name, "does not match the expected pattern 'sceX_DGPY'."))
+    }
+    Scenario <- as.integer(matches[2])
+    DGP <- as.integer(matches[3])
+    
+    # Call simulate_effective_power for this combination
+    eff_power <- check_effective_power(DGP = DGP, Scenario = Scenario,
+                                          data_list = big_data_list[[name]],
+                                          cores = cores)
+    
+    # Store the result with the corresponding name
+    results[[name]] <- eff_power
+  }
+  
+  return(results)
 }
 
 MissingProportion <- function(data_list) {

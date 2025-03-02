@@ -317,4 +317,463 @@ simulateDatasets <- function(scenario, dgp, n_datasets = 1000, n = 2000) {
 }
 
 
+# Introduce Missingness through m-DAG framework
+mDAG_missingness <- function(data_list, coefs, m_dag, DGP = NULL) {
+  
+  if (!is.null(DGP)) {
+    if (DGP == "DGP1") {
+      cont <- FALSE
+    } else {
+      cont <- TRUE
+    }
+  }
+  # Fixed coefficients for different m-DAGs
+  fixed_coefs <- list(
+    J = list(
+      Z1 = 0.6,
+      Z2 = 0.6,
+      Z3 = 0.6,
+      Z4 = 0.6,
+      Z5 = -0.6,
+      Z6 = 0.2,
+      A = -0.6,
+      Y = 0.2
+    ),
+    I = list(
+      Z1 = 0.6,
+      Z2 = 0.6,
+      Z3 = 0.6,
+      Z4 = 0.6,
+      Z5 = -0.6,
+      Z6 = 0.2,
+      A = -0.6,
+      Y = 0.2
+    ),
+    E = list(
+      Z1 = 0.6,
+      Z2 = 0.6,
+      Z3 = 0.6,
+      Z4 = 0.6,
+      Z5 = -0.6,
+      Z6 = 0.2,
+      A = -0.6,
+      Y = 0
+    ),
+    A = list(
+      Z1 = 0.6,
+      Z2 = 0,
+      Z3 = 0,
+      Z4 = 0,
+      Z5 = -0.6,
+      Z6 = 0,
+      A = 0,
+      Y = 0
+    ),
+    T = list(
+      Z1 = 0,
+      Z2 = 0,
+      Z3 = 0,
+      Z4 = 0,
+      Z5 = 0,
+      Z6 = 0,
+      A = 0,
+      Y = 0
+    )
+  )
+  
+  # Adjust fixed coefficients if 'cont' is TRUE
+  if (cont) {
+    for (key in names(fixed_coefs)) {
+      fixed_coefs[[key]]$Z4 <- fixed_coefs[[key]]$Z4 * (1/3)
+      fixed_coefs[[key]]$Z5 <- fixed_coefs[[key]]$Z5 * (1/3)
+    }
+  }
+  
+  for (i in seq_along(data_list)) {
+    data <- data_list[[i]]
+    
+    # Centering Z4, Z5, and Z6 if 'cont' is TRUE
+    if (cont) {
+      Z4_mean <- mean(data$Z4, na.rm = TRUE)
+      Z5_mean <- mean(data$Z5, na.rm = TRUE)
+      centered_Z4 <- data$Z4 - Z4_mean
+      centered_Z5 <- data$Z5 - Z5_mean
+      if (DGP == "DGP5") {
+        Z6_mean <- mean(data$Z6, na.rm = TRUE)
+        centered_Z6 <- data$Z6 - Z6_mean
+      }
+    } else {
+      centered_Z4 <- data$Z4
+      centered_Z5 <- data$Z5
+    }
+    
+    U <- rnorm(nrow(data), mean = 0, sd = 1)
+    
+    # Generating missingness indicators using centered values
+    MZ2 <- rbinom(nrow(data), size = 1, prob = plogis(
+      coefs$MZ2$intercept +
+        fixed_coefs[[m_dag]]$Z1 * data$Z1 +
+        fixed_coefs[[m_dag]]$Z2 * data$Z2 +
+        fixed_coefs[[m_dag]]$Z5 * centered_Z5 +
+        fixed_coefs[[m_dag]]$A * data$A +
+        fixed_coefs[[m_dag]]$Y * data$Y +
+        coefs$MZ2$U * U
+    ))
+    
+    if (DGP == "DGP4" || DGP == "DGP5") {
+      Z3_dummies <- model.matrix(~ data$Z3 - 1)
+      Z3_effect <- fixed_coefs[[m_dag]]$Z3 * Z3_dummies[, 1] + fixed_coefs[[m_dag]]$Z3 * Z3_dummies[, 2]
+    } else {
+      Z3_effect <- fixed_coefs[[m_dag]]$Z3 * data$Z3
+    }
+    
+    MZ3 <- rbinom(nrow(data), size = 1, prob = plogis(
+      coefs$MZ3$intercept +
+        fixed_coefs[[m_dag]]$Z1 * data$Z1 +
+        Z3_effect +
+        fixed_coefs[[m_dag]]$Z5 * centered_Z5 +
+        fixed_coefs[[m_dag]]$A * data$A +
+        fixed_coefs[[m_dag]]$Y * data$Y +
+        coefs$MZ3$MZ2 * MZ2 +
+        coefs$MZ3$U * U
+    ))
+    
+    MZ4 <- rbinom(nrow(data), size = 1, prob = plogis(
+      coefs$MZ4$intercept +
+        fixed_coefs[[m_dag]]$Z1 * data$Z1 +
+        fixed_coefs[[m_dag]]$Z4 * centered_Z4 +
+        fixed_coefs[[m_dag]]$Z5 * centered_Z5 +
+        fixed_coefs[[m_dag]]$A * data$A +
+        fixed_coefs[[m_dag]]$Y * data$Y +
+        coefs$MZ4$MZ2 * MZ2 +
+        coefs$MZ4$MZ3 * MZ3 +
+        coefs$MZ4$U * U
+    ))
+    
+    if (DGP == "DGP5") {
+      MZ6 <- rbinom(nrow(data), size = 1, prob = plogis(
+        coefs$MZ6$intercept +
+          fixed_coefs[[m_dag]]$Z1 * data$Z1 +
+          fixed_coefs[[m_dag]]$Z4 * centered_Z4 +
+          fixed_coefs[[m_dag]]$Z5 * centered_Z5 +
+          fixed_coefs[[m_dag]]$Z6 * centered_Z6 +
+          fixed_coefs[[m_dag]]$A * data$A +
+          fixed_coefs[[m_dag]]$Y * data$Y +
+          coefs$MZ6$MZ2 * MZ2 +
+          coefs$MZ6$MZ3 * MZ3 +
+          coefs$MZ6$MZ4 * MZ4 +
+          coefs$MZ6$U * U
+      ))
+    } 
+    
+    if (DGP == "DGP5") {
+      MZ6 <- rbinom(nrow(data), size = 1, prob = plogis(
+        coefs$MZ6$intercept +
+          fixed_coefs[[m_dag]]$Z1 * data$Z1 +
+          fixed_coefs[[m_dag]]$Z4 * centered_Z4 +
+          fixed_coefs[[m_dag]]$Z5 * centered_Z5 +
+          fixed_coefs[[m_dag]]$Z6 * centered_Z6 +
+          fixed_coefs[[m_dag]]$A * data$A +
+          fixed_coefs[[m_dag]]$Y * data$Y +
+          coefs$MZ6$MZ2 * MZ2 +
+          coefs$MZ6$MZ3 * MZ3 +
+          coefs$MZ6$MZ4 * MZ4 +
+          coefs$MZ6$U * U
+      ))
+    }
+    
+    MA <- rbinom(nrow(data), size = 1, prob = plogis(
+      coefs$MA$intercept +
+        fixed_coefs[[m_dag]]$Z1 * data$Z1 +
+        fixed_coefs[[m_dag]]$Z2 * data$Z2 +
+        Z3_effect +
+        fixed_coefs[[m_dag]]$Z4 * centered_Z4 +
+        fixed_coefs[[m_dag]]$Z5 * centered_Z5 +
+        (if (DGP == "DGP5") fixed_coefs[[m_dag]]$Z6 * centered_Z6 else 0) +
+        fixed_coefs[[m_dag]]$A * data$A +
+        fixed_coefs[[m_dag]]$Y * data$Y +
+        coefs$MA$MZ2 * MZ2 +
+        coefs$MA$MZ3 * MZ3 +
+        coefs$MA$MZ4 * MZ4 +
+        (if (DGP == "DGP5") coefs$MA$MZ6 * MZ6 else 0) +
+        coefs$MA$U * U
+    ))
+    
+    if (m_dag == "I") {
+      y_effect <- 0
+    } else {
+      y_effect <- fixed_coefs[[m_dag]]$Y * data$Y
+    }
+    
+    MY <- rbinom(nrow(data), size = 1, prob = plogis(
+      coefs$MY$intercept +
+        fixed_coefs[[m_dag]]$Z1 * data$Z1 +
+        fixed_coefs[[m_dag]]$Z2 * data$Z2 +
+        Z3_effect +
+        fixed_coefs[[m_dag]]$Z4 * centered_Z4 +
+        fixed_coefs[[m_dag]]$Z5 * centered_Z5 +
+        (if (DGP == "DGP5") fixed_coefs[[m_dag]]$Z6 * centered_Z6 else 0) +
+        fixed_coefs[[m_dag]]$A * data$A +
+        y_effect +
+        coefs$MY$MZ2 * MZ2 +
+        coefs$MY$MZ3 * MZ3 +
+        coefs$MY$MZ4 * MZ4 +
+        (if (DGP == "DGP5") coefs$MY$MZ6 * MZ6 else 0) +
+        coefs$MY$MA * MA +
+        coefs$MY$U * U
+    ))
+    
+    # Inducing NAs based on missingness indicators
+    data$Y[MY == 1] <- NA
+    data$A[MA == 1] <- NA
+    data$Z2[MZ2 == 1] <- NA
+    data$Z3[MZ3 == 1] <- NA
+    data$Z4[MZ4 == 1] <- NA
+    if (DGP == "DGP5") {
+      data$Z6[MZ6 == 1] <- NA
+    }
+    
+    data_list[[i]] <- data
+  }
+  
+  return(data_list)
+}
 
+# master coefficient list for all DGPs and missingness types
+coef_list <- list(
+  DGP1 = list(
+    T = list(
+      MZ2 = list(intercept = -1.1, U = 0),
+      MZ3 = list(intercept = -1.45, MZ2 = 2, U = 0),
+      MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
+      MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
+      MY = list(intercept = -2.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.5, U = 0)
+    ),
+    A = list(
+      MZ2 = list(intercept = -1.0, U = 0),
+      MZ3 = list(intercept = -1.40, MZ2 = 2, U = 0),
+      MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
+      MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
+      MY = list(intercept = -2.50, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.9, U = 0)
+    ),
+    E = coefsE <- list(
+      MZ2 = list(intercept = -1.05, U = 0),
+      MZ3 = list(intercept = -1.70, MZ2 = 2, U = 0),
+      MZ4 = list(intercept = -3.10, MZ2 = 1.9, MZ3 = 1.9, U = 0),
+      MA = list(intercept = -3.00, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
+      MY = list(intercept = -3.10, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.9, U = 0)
+    ),
+    I = coefsI <- list(
+      MZ2 = list(intercept = -1.05, U = 0),
+      MZ3 = list(intercept = -1.75, MZ2 = 2.2, U = 0),
+      MZ4 = list(intercept = -3.45, MZ2 = 2.1, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.20, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
+      MY = list(intercept = -2.60, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
+    ),
+    J = coefsJ <- list(
+      MZ2 = list(intercept = -1.05, U = 0),
+      MZ3 = list(intercept = -1.75, MZ2 = 2.1, U = 0),
+      MZ4 = list(intercept = -3.30, MZ2 = 2.0, MZ3 = 2.0, U = 0),
+      MA = list(intercept = -3.05, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
+      MY = list(intercept = -2.90, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -2.5, U = 0)
+    )
+  ),
+  DGP2 = list(
+    T = list(
+      MZ2 = list(intercept = -1.1, U = 0),
+      MZ3 = list(intercept = -1.45, MZ2 = 2, U = 0),
+      MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
+      MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
+      MY = list(intercept = -2.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.5, U = 0)
+    ),
+    A = list(
+      MZ2 = list(intercept = -1.40, U = 0),
+      MZ3 = list(intercept = -1.85, MZ2 = 2.3, U = 0),
+      MZ4 = list(intercept = -3.45, MZ2 = 2.0, MZ3 = 2.0, U = 0),
+      MA = list(intercept = -2.60, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
+      MY = list(intercept = -2.60, MZ2 = 1.3, MZ3 = 1.3, MZ4 = 1.3, MA = -1.3, U = 0)
+    ),
+    E = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.15, MZ2 = 2.3, U = 0),
+      MZ4 = list(intercept = -3.60, MZ2 = 2.2, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.05, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
+      MY = list(intercept = -2.90, MZ2 = 1.1, MZ3 = 1.1, MZ4 = 1.1, MA = -1.2, U = 0)
+    ),
+    I = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.10, MZ2 = 2.2, U = 0),
+      MZ4 = list(intercept = -3.60, MZ2 = 2.1, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.45, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
+      MY = list(intercept = -2.80, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.1, U = 0)
+    ),
+    J = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.10, MZ2 = 2.2, U = 0),
+      MZ4 = list(intercept = -3.65, MZ2 = 2.2, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.70, MZ2 = 2.3, MZ3 = 2.3, MZ4 = 2.3, U = 0),
+      MY = list(intercept = -2.70, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.4, U = 0)
+    )
+  ),
+  DGP3 = list(
+    T = list(
+      MZ2 = list(intercept = -1.1, U = 0),
+      MZ3 = list(intercept = -1.45, MZ2 = 2, U = 0),
+      MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
+      MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
+      MY = list(intercept = -2.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.5, U = 0)
+    ),
+    A = list(
+      MZ2 = list(intercept = -1.40, U = 0),
+      MZ3 = list(intercept = -1.85, MZ2 = 2.3, U = 0),
+      MZ4 = list(intercept = -3.45, MZ2 = 2.0, MZ3 = 2.0, U = 0),
+      MA = list(intercept = -2.55, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
+      MY = list(intercept = -2.60, MZ2 = 1.3, MZ3 = 1.3, MZ4 = 1.3, MA = -1.3, U = 0)
+    ),
+    E = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.10, MZ2 = 2.3, U = 0),
+      MZ4 = list(intercept = -3.55, MZ2 = 2.2, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.05, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
+      MY = list(intercept = -2.90, MZ2 = 1.1, MZ3 = 1.1, MZ4 = 1.1, MA = -1.2, U = 0)
+    ),
+    I = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.10, MZ2 = 2.2, U = 0),
+      MZ4 = list(intercept = -3.60, MZ2 = 2.1, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.40, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
+      MY = list(intercept = -2.8, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
+    ),
+    J = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.05, MZ2 = 2.0, U = 0),
+      MZ4 = list(intercept = -3.55, MZ2 = 2.2, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.65, MZ2 = 2.3, MZ3 = 2.3, MZ4 = 2.3, U = 0),
+      MY = list(intercept = -2.80, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
+    )
+  ),
+  DGP4 = list(
+    T = list(
+      MZ2 = list(intercept = -1.1, U = 0),
+      MZ3 = list(intercept = -1.45, MZ2 = 2, U = 0),
+      MZ4 = list(intercept = -2.95, MZ2 = 1.9, MZ3 = 1.9, U = 0),
+      MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
+      MY = list(intercept = -2.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.5, U = 0)
+    ),
+    A = list(
+      MZ2 = list(intercept = -1.40, U = 0),
+      MZ3 = list(intercept = -1.85, MZ2 = 2.3, U = 0),
+      MZ4 = list(intercept = -3.45, MZ2 = 2.0, MZ3 = 2.0, U = 0),
+      MA = list(intercept = -2.55, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
+      MY = list(intercept = -2.60, MZ2 = 1.3, MZ3 = 1.3, MZ4 = 1.3, MA = -1.3, U = 0)
+    ),
+    E = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.20, MZ2 = 2.3, U = 0),
+      MZ4 = list(intercept = -3.55, MZ2 = 2.2, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.15, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, U = 0),
+      MY = list(intercept = -2.95, MZ2 = 1.1, MZ3 = 1.1, MZ4 = 1.1, MA = -1.2, U = 0)
+    ),
+    I = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.20, MZ2 = 2.2, U = 0),
+      MZ4 = list(intercept = -3.60, MZ2 = 2.1, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.50, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
+      MY = list(intercept = -2.90, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
+    ),
+    J = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.15, MZ2 = 2.0, U = 0),
+      MZ4 = list(intercept = -3.60, MZ2 = 2.2, MZ3 = 2.2, U = 0),
+      MA = list(intercept = -3.75, MZ2 = 2.3, MZ3 = 2.3, MZ4 = 2.3, U = 0),
+      MY = list(intercept = -2.90, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
+    )
+  ),
+  DGP5 = list(
+    T = list(
+      MZ2 = list(intercept = -1.1, U = 0),
+      MZ3 = list(intercept = -1.50, MZ2 = 2.2, U = 0),
+      MZ4 = list(intercept = -3.05, MZ2 = 2, MZ3 = 2, U = 0),
+      MZ6 = list(intercept = -3.15, MZ2 = 2, MZ3 = 2, MZ4 = 2, U = 0),
+      MA = list(intercept = -2.95, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, MZ6 = 1.8, U = 0),
+      MY = list(intercept = -2.65, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, MZ6 = 1.6, MA = -2.8, U = 0)
+    ),
+    A = list(
+      MZ2 = list(intercept = -1.40, U = 0),
+      MZ3 = list(intercept = -1.85, MZ2 = 2.4, U = 0),
+      MZ4 = list(intercept = -3.50, MZ2 = 2.0, MZ3 = 2.0, U = 0),
+      MZ6 = list(intercept = -3.45, MZ2 = 2, MZ3 = 2, MZ4 = 2, U = 0),
+      MA = list(intercept = -2.80, MZ2 = 1.4, MZ3 = 1.4, MZ4 = 1.4, MZ6 = 1.4, U = 0),
+      MY = list(intercept = -2.75, MZ2 = 1.3, MZ3 = 1.3, MZ4 = 1.3, MZ6 = 1.3, MA = -2.2, U = 0)
+    ),
+    E = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.20, MZ2 = 2.3, U = 0),
+      MZ4 = list(intercept = -3.55, MZ2 = 2.2, MZ3 = 2.2, U = 0),
+      MZ6 = list(intercept = -3.45, MZ2 = 2, MZ3 = 2, MZ4 = 2, U = 0),
+      MA = list(intercept = -3.50, MZ2 = 1.6, MZ3 = 1.6, MZ4 = 1.6, MZ6 = 1.4, U = 0),
+      MY = list(intercept = -3.10, MZ2 = 1.1, MZ3 = 1.1, MZ4 = 1.1, MZ6 = 1.4, MA = -2.2, U = 0)
+    ),
+    I = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.20, MZ2 = 2.2, U = 0),
+      MZ4 = list(intercept = -3.60, MZ2 = 2.1, MZ3 = 2.2, U = 0),
+      MZ6 = list(intercept = -3.45, MZ2 = 2, MZ3 = 2, MZ4 = 2, U = 0),
+      MA = list(intercept = -3.65, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MZ6 = 1.4, U = 0),
+      MY = list(intercept = -3.05, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MZ6 = 1.4, MA = -2.2, U = 0)
+    ),
+    J = list(
+      MZ2 = list(intercept = -1.50, U = 0),
+      MZ3 = list(intercept = -2.15, MZ2 = 2.0, U = 0),
+      MZ4 = list(intercept = -3.60, MZ2 = 2.2, MZ3 = 2.2, U = 0),
+      MZ6 = list(intercept = -3.45, MZ2 = 2, MZ3 = 2, MZ4 = 2, U = 0),
+      MA = list(intercept = -4.10, MZ2 = 2.3, MZ3 = 2.3, MZ4 = 2.2, MZ6 = 1.6, U = 0),
+      MY = list(intercept = -2.90, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MZ6 = 1.2, MA = -2.3, U = 0)
+    )
+  )
+)
+
+apply_missingness_bigdata <- function(big_data_list, missingness_type, coef_list) {
+  result <- list()
+  
+  for (name in names(big_data_list)) {
+    # Expected name pattern: "sceX_DGPY" (e.g., "sce1_DGP1")
+    matches <- regmatches(name, regexec("sce(\\d+)_DGP(\\d+)", name))[[1]]
+    if (length(matches) < 3) {
+      stop(paste("Name", name, "does not match the expected pattern 'sceX_DGPY'."))
+    }
+    
+    # Extract Scenario and DGP numbers (as integers)
+    scenario <- as.integer(matches[2])
+    DGP <- as.integer(matches[3])
+    
+    # Build DGP key (e.g., "DGP1")
+    dgp_key <- paste0("DGP", DGP)
+    
+    # Look up the appropriate coefficient list for this DGP and missingness type
+    if (!is.null(coef_list[[dgp_key]][[missingness_type]])) {
+      current_coefs <- coef_list[[dgp_key]][[missingness_type]]
+    } else {
+      stop(paste("Coefficient list for", dgp_key, "and missingness type", missingness_type, "not found."))
+    }
+    
+    # Apply the missingness simulation using mDAG_missingness
+    modified_data <- mDAG_missingness(
+      data_list = big_data_list[[name]],
+      coefs = current_coefs,
+      m_dag = missingness_type,
+      DGP = dgp_key
+    )
+    
+    # Compute missingness summary using MissingProportion
+    missing_summary <- MissingProportion(modified_data)
+    
+    # Store both outputs in a temporary list (to be renamed later)
+    result[[name]] <- list(
+      modified_data = modified_data,
+      missing_summary = missing_summary
+    )
+  }
+  
+  return(result)
+}

@@ -4,177 +4,106 @@ source("~/GitHub/MissingDataTmle/Simulation/model-based/Data_and_Missingness.R")
 source("~/GitHub/MissingDataTmle/Simulation/model-based/general_Functions.R")
 source("~/GitHub/MissingDataTmle/Simulation/model-based/analysis_Functions.R")
 
-# Simulate datasets for DGP1, DGP2, DGP3, DGP4, and DGP5
-DGP1_data <- list(
-  sce1_DGP1 = simulateDatasets("sce1", "DGP1"),
-  sce2_DGP1 = simulateDatasets("sce2", "DGP1"),
-  sce3_DGP1 = simulateDatasets("sce3", "DGP1")
-)
+#### DGP ####
 
-DGP2_data <- list(
-  sce1_DGP2 = simulateDatasets("sce1", "DGP2"),
-  sce2_DGP2 = simulateDatasets("sce2", "DGP2"),
-  sce3_DGP2 = simulateDatasets("sce3", "DGP2")
-)
+# Set simulation parameters
+Sim <- 1000   # Number of repetitions
+n <- 2000     # Sample size per dataset
 
-DGP3_data <- list(
-  sce1_DGP3 = simulateDatasets("sce1", "DGP3"),
-  sce2_DGP3 = simulateDatasets("sce2", "DGP3"),
-  sce3_DGP3 = simulateDatasets("sce3", "DGP3")
-)
+dgp_list <- c("DGP1", "DGP2", "DGP3", "DGP4", "DGP5")
+scenarios <- c("sce1", "sce2", "sce3")
 
-DGP4_data <- list(
-  sce1_DGP4 = simulateDatasets("sce1", "DGP4"),
-  sce2_DGP4 = simulateDatasets("sce2", "DGP4"),
-  sce3_DGP4 = simulateDatasets("sce3", "DGP4")
-)
+# Create data
+big_data_list <- list()
 
-DGP5_data <- list(
-  sce1_DGP5 = simulateDatasets("sce1", "DGP5"),
-  sce2_DGP5 = simulateDatasets("sce2", "DGP5"),
-  sce3_DGP5 = simulateDatasets("sce3", "DGP5")
-)
-
-
-check_data(DGP1_data$sce1_DGP1) 
-check_data(DGP1_data$sce2_DGP1) 
-check_data(DGP1_data$sce3_DGP1) 
-
-check_data(DGP2_data$sce1_DGP2) 
-check_data(DGP2_data$sce2_DGP2) 
-check_data(DGP2_data$sce3_DGP2) 
-
-check_data(DGP3_data$sce1_DGP3)
-check_data(DGP3_data$sce2_DGP3)
-check_data(DGP3_data$sce3_DGP3)
-
-check_data(DGP4_data$sce1_DGP4)
-check_data(DGP4_data$sce2_DGP4)
-check_data(DGP4_data$sce3_DGP4)
-
-check_data(DGP5_data$sce1_DGP5)
-check_data(DGP5_data$sce2_DGP5)
-check_data(DGP5_data$sce3_DGP5)
-
-#### Full Data Assesment ####
-
-calculate_measures <- function(TMLE_list, True_ATE = 0.20) {
-  
-  estimate_vector <- vector(length = (length(TMLE_list)))
-  variance_values <- vector(length = (length(TMLE_list)))
-  CI_upper_values <- vector(length = (length(TMLE_list)))
-  CI_lower_values <- vector(length = (length(TMLE_list)))
-  measure_vector <- vector(length = 11)
-  
-  for (i in 1:(length(TMLE_list))) {
-    estimate_vector[i] <- TMLE_list[[i]][[1]]
-    variance_values[i] <- TMLE_list[[i]][[2]]
-    CI_upper_values[i] <- TMLE_list[[i]][[1]] + 1.96*(sqrt(TMLE_list[[i]][[2]]))
-    CI_lower_values[i] <- TMLE_list[[i]][[1]] - 1.96*(sqrt(TMLE_list[[i]][[2]]))
+for (dgp in dgp_list) {
+  for (sce in scenarios) {
+    list_name <- paste0(sce, "_", dgp)
+    big_data_list[[list_name]] <- simulateDatasets(scenario = sce, dgp = dgp, n_datasets = Sim, n = n)
   }
-  
-  measure_vector[1] <- mean(estimate_vector) # mean
-  measure_vector[2] <- measure_vector[1] - True_ATE # bias
-  measure_vector[3] <- (measure_vector[2] / True_ATE) * 100 # rel bias in %
-  measure_vector[4] <- sqrt((1 / (length(estimate_vector) - 1)) * (sum((estimate_vector - measure_vector[1])^2))) # emp.SE
-  measure_vector[5] <- sqrt((1 / (length(estimate_vector))) * (sum((estimate_vector - True_ATE)^2))) # RMSE
-  measure_vector[6] <- sqrt(mean(variance_values)) # Mod.SE
-  measure_vector[7] <- 100 * ((measure_vector[6] / measure_vector[4] - 1)) # Relative error in Mod.SE in %
-  measure_vector[8] <- mean(ifelse((CI_upper_values >= True_ATE) & (CI_lower_values <= True_ATE), 1, 0)) # Coverage
-  measure_vector[9] <- mean(ifelse((CI_upper_values >= measure_vector[1]) & (CI_lower_values <= measure_vector[1]), 1, 0)) # Bias.eliminated.Coverage
-  measure_vector[10] <- mean(abs(CI_upper_values - CI_lower_values)) # Mean.CI.Length
-  measure_vector[11] <- mean(ifelse((CI_upper_values >= 0) & (CI_lower_values <= 0), 0, 1)) # effect.Power
-  
-  names(measure_vector) <- c("mean", "Bias", "relBias.%", "empSE", "RMSE", "ModSE", "ErrorModSE.%", "Coverage", "BiasElimCoverage", "MeanCILength", "effect.Power")
-  
-  return(measure_vector)
 }
 
-estimate_models <- function(DGP_type, data_list, cores = 10) {
-  
-  # Register parallel backend
-  cl <- makeCluster(cores)
-  registerDoParallel(cl)
-  
-  # Define the formula based on DGP type
-  formula <- switch(DGP_type,
-                    "DGP1" = Y ~ Z1 + Z2 + Z3 + Z4 + Z5 + A +
-                      Z1:Z3 + Z1:Z4 + Z1:Z5 + 
-                      Z3:Z4 + Z3:Z5 + Z4:Z5 + 
-                      Z1:Z2:Z4 + Z1:Z2:Z5 + Z1:Z4:Z5 + Z2:Z4:Z5 + Z1:Z2:Z4:Z5,
-                    "DGP4" = Y ~ Z1 + Z2 + Z3 + Z4 + Z5 + A +
-                      Z1:Z3 + Z1:Z4 + Z1:Z5 +
-                      Z3:Z4 + Z3:Z5 + Z4:Z5 +
-                      Z1:Z4:Z2 + Z1:Z5:Z2 + Z1:Z4:Z5 + Z4:Z5:Z2 + Z1:Z4:Z5:Z2,
-                    "DGP5" = Y ~ Z1 + Z2 + Z3 + Z4 + Z5 + Z6 + A +
-                      Z1:Z3 + Z1:Z4 + Z1:Z5 +
-                      Z3:Z4 + Z3:Z5 + Z4:Z5 +
-                      Z1:Z6 + Z4:Z6 + Z5:Z6 +
-                      Z1:Z4:Z6 + Z1:Z5:Z6 + Z1:Z4:Z5 + Z4:Z5:Z6 + Z1:Z4:Z5:Z6,
-                    stop("Invalid DGP type")
-  )
-  
-  # Parallel model estimation
-  results <- foreach(i = 1:length(data_list), .packages = 'stats') %dopar% {
-    data <- data_list[[i]]
-    model <- lm(formula, data = data)
-    coef_A <- coef(model)["A"]
-    var_A <- vcov(model)["A", "A"]
-    return(list(coef_A = coef_A, var_A = var_A))
-  }
-  
-  # Stop the cluster
-  stopCluster(cl)
-  
-  return(results)
+#### Full data assessment #####
+
+# Check data proportions
+full_data_proportions <- list()
+
+for (data_name in names(big_data_list)) {
+  full_data_proportions[[data_name]] <- check_data(big_data_list[[data_name]])
 }
 
-# Example usage:
-# Set global options for number formatting
-options(scipen = 1, digits = 4)
-
-models_sce1_DGP1 <- estimate_models("DGP1", DGP1_data$sce1_DGP1)
-models_sce2_DGP1 <- estimate_models("DGP1", DGP1_data$sce2_DGP1)
-models_sce3_DGP1 <- estimate_models("DGP1", DGP1_data$sce3_DGP1)
-calculate_measures(models_sce1_DGP1, True_ATE = 0.20)
-calculate_measures(models_sce2_DGP1, True_ATE = 0.20)
-calculate_measures(models_sce3_DGP1, True_ATE = 0.24)
+full_data_proportions
 
 
-models_sce1_DGP2 <- estimate_models("DGP1", DGP2_data$sce1_DGP2)
-models_sce2_DGP2 <- estimate_models("DGP1", DGP2_data$sce2_DGP2)
-models_sce3_DGP2 <- estimate_models("DGP1", DGP2_data$sce3_DGP2)
-calculate_measures(models_sce1_DGP2, True_ATE = 0.18)
-calculate_measures(models_sce2_DGP2, True_ATE = 0.20)
-calculate_measures(models_sce3_DGP2, True_ATE = 0.23)
+# Check positivity violation in data
+full_positivity_results <- list()
 
+for (data_name in names(big_data_list)) {
+  full_positivity_results[[data_name]] <- check_positivity(big_data_list[[data_name]])
+}
 
-models_sce1_DGP3 <- estimate_models("DGP1", DGP3_data$sce1_DGP3)
-models_sce2_DGP3 <- estimate_models("DGP1", DGP3_data$sce2_DGP3)
-models_sce3_DGP3 <- estimate_models("DGP1", DGP3_data$sce3_DGP3)
-calculate_measures(models_sce1_DGP3, True_ATE = 0.18)
-calculate_measures(models_sce2_DGP3, True_ATE = 0.19)
-calculate_measures(models_sce3_DGP3, True_ATE = 0.22)
+full_positivity_results
 
-
-models_sce1_DGP4 <- estimate_models("DGP4", DGP4_data$sce1_DGP4)
-models_sce2_DGP4 <- estimate_models("DGP4", DGP4_data$sce2_DGP4)
-models_sce3_DGP4 <- estimate_models("DGP4", DGP4_data$sce3_DGP4)
-calculate_measures(models_sce1_DGP4, True_ATE = 0.18)
-calculate_measures(models_sce2_DGP4, True_ATE = 0.20)
-calculate_measures(models_sce3_DGP4, True_ATE = 0.22)
-
-
-models_sce1_DGP5 <- estimate_models("DGP5", DGP5_data$sce1_DGP5)
-models_sce2_DGP5 <- estimate_models("DGP5", DGP5_data$sce2_DGP5)
-models_sce3_DGP5 <- estimate_models("DGP5", DGP5_data$sce3_DGP5)
-calculate_measures(models_sce1_DGP5, True_ATE = 0.18)
-calculate_measures(models_sce2_DGP5, True_ATE = 0.20)
-calculate_measures(models_sce3_DGP5, True_ATE = 0.22)
+# Check power of effect
+effective_power_results <- check_effective_power_bigdata(big_data_list, cores = 10)
+effective_power_results
 
 
 
+#### Induce Missingness ####
 
+missingness_types <- c("T", "A", "E", "I", "J")
+
+all_missingnes_data <- list()      # Will store the modified (missingness-induced) datasets
+all_missing_proportions <- list()  # Will store the missing proportions
+
+for (m_type in missingness_types) {
+  cat("Processing missingness type:", m_type, "\n")
+  
+  # Apply missingness function for this type on the entire big_data_list
+  result <- apply_missingness_bigdata(big_data_list, missingness_type = m_type, coef_list = coef_list)
+  
+  # Iterate over each element of the result to rename and store outputs
+  for (orig_key in names(result)) {
+    # Extract scenario and DGP from the original key (expected format "sceX_DGPY")
+    matches <- regmatches(orig_key, regexec("sce(\\d+)_DGP(\\d+)", orig_key))[[1]]
+    if (length(matches) < 3) {
+      stop(paste("Name", orig_key, "does not match the expected pattern."))
+    }
+    scenario <- matches[2]  
+    dgp <- matches[3]     
+    
+    # Create the new key according to the desired pattern:
+    new_key <- paste0("mDag", m_type, "_DGP", dgp, "_sce", scenario)
+    
+    # Store the outputs under the new key
+    all_missingnes_data[[new_key]] <- result[[orig_key]]$modified_data
+    all_missing_proportions[[new_key]] <- result[[orig_key]]$missing_summary
+  }
+}
+
+
+
+# Create a list to store the missingness data frames for each DGP
+missing_dgp_list <- list()
+
+# Loop over DGP numbers 1 to 5
+for(d in 1:5) {
+  dgp_pattern <- paste0("DGP", d)
+  
+  # Extract the keys from all_missing_proportions that contain the DGP pattern.
+  keys_dgp <- names(all_missing_proportions)[grepl(dgp_pattern, names(all_missing_proportions))]
+  df_dgp <- do.call(rbind, all_missing_proportions[keys_dgp])
+  
+  # Assign the row names as the keys (i.e. the element names from the original list)
+  rownames(df_dgp) <- keys_dgp
+  
+  # Store the data frame in the list with the name of the DGP (e.g., "DGP1")
+  missing_dgp_list[[dgp_pattern]] <- as.data.frame(df_dgp)
+}
+
+# Check missingness for the DGPs
+missing_dgp_list
 
 
 
