@@ -419,7 +419,7 @@ all_measures_TMLE <- function(results_list) {
   
   # Extract additional columns from input_name
   mDag <- substring(input_name, 5, 5)
-  recov <- ifelse(grepl("mDag[AET]", input_name), "yes", "no")
+  recov <- ifelse(grepl("mDag[ABC]", input_name), "yes", "no")
   
   results_df$Method <- gsub("_", " ", sub("_res$", "", rownames(results_df)))
   results_df$Scenario <- paste0("Scenario", Scenario)

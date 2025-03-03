@@ -1,8 +1,9 @@
 
 source("~/GitHub/MissingDataTmle/Simulation/model-based/01_used_libraries.R")
-source("~/GitHub/MissingDataTmle/Simulation/model-based/Data_and_Missingness.R")
-source("~/GitHub/MissingDataTmle/Simulation/model-based/general_Functions.R")
-source("~/GitHub/MissingDataTmle/Simulation/model-based/analysis_Functions.R")
+source("~/GitHub/MissingDataTmle/Simulation/model-based/02_general_Functions.R")
+source("~/GitHub/MissingDataTmle/Simulation/model-based/03_Data_and_Mis_Functions.R")
+source("~/GitHub/MissingDataTmle/Simulation/model-based/04_analysis_Functions.R")
+source("~/GitHub/MissingDataTmle/Simulation/model-based/05_plot_Functions.R")
 
 #### DGP ####
 
@@ -172,3 +173,49 @@ rownames(big_table) <- sub(".*\\.", "", rownames(big_table))
 # Inspect the resulting big_table
 str(big_table)
 head(big_table)
+
+
+
+#### Result Plots ####
+
+#Bias
+plots_Bias <- lapply(missingness_types, function(d) {
+  scenarioOverviewPlot(big_table, Dag = d)
+})
+
+plots_Bias <- do.call(grid.arrange, c(plots_Bias, ncol = 1))
+
+# Save 
+ggsave("~/GitHub/MissingDataTmle/Simulation/model-based/Results/plots_Bias.png",
+       plot = plots_Bias,
+       width = 8.88, height = 12.50)
+
+
+
+# Coverage
+plots_Cov <- lapply(missingness_types, function(d) {
+  scenarioOverviewPlotC(big_table, Dag = d)
+})
+
+plots_Cov <- do.call(grid.arrange, c(plots_Cov, ncol = 1))
+
+ggsave("~/GitHub/MissingDataTmle/Simulation/model-based/Results/plots_Coverage.png",
+       plot = plots_Cov,
+       width = 8.88, height = 12.50)
+
+# RMSE
+plots_RMSE <- lapply(missingness_types, function(d) {
+  scenarioOverviewPlotC(big_table, Dag = d)
+})
+
+plots_RMSE <- do.call(grid.arrange, c(plots_RMSE, ncol = 1))
+
+ggsave("~/GitHub/MissingDataTmle/Simulation/model-based/Results/plots_RMSE.png",
+       plot = plots_RMSE,
+       width = 8.88, height = 12.50)
+
+
+
+
+
+
