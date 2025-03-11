@@ -1,14 +1,14 @@
 
-source("~/GitHub/MissingDataTmle/Simulation/model-based/01_used_libraries.R")
-source("~/GitHub/MissingDataTmle/Simulation/model-based/02_general_Functions.R")
-source("~/GitHub/MissingDataTmle/Simulation/model-based/03_Data_and_Mis_Functions.R")
-source("~/GitHub/MissingDataTmle/Simulation/model-based/04_analysis_Functions.R")
-source("~/GitHub/MissingDataTmle/Simulation/model-based/05_plot_Functions.R")
+source("~/MissingDataTmle/Simulation/model-based/01_used_libraries.R")
+source("~/MissingDataTmle/Simulation/model-based/02_general_Functions.R")
+source("~/MissingDataTmle/Simulation/model-based/03_Data_and_Mis_Functions.R")
+source("~/MissingDataTmle/Simulation/model-based/04_analysis_Functions.R")
+source("~/MissingDataTmle/Simulation/model-based/05_plot_Functions.R")
 
 #### DGP ####
 
 # Set simulation parameters
-Sim <- 20   # Number of repetitions
+Sim <- 1000   # Number of repetitions
 n <- 2000     # Sample size per dataset
 
 dgp_list <- c("DGP1", "DGP2", "DGP3", "DGP4", "DGP5")
@@ -131,11 +131,11 @@ for (orig_key in names(all_missingnes_data)) {
   # Call the apply_all_methods function for this element, passing the proper DGP
   method_res <- apply_all_methods(
     data_list = all_missingnes_data[[orig_key]], 
-    m = 5, 
+    m = 100, 
     cores = 10, 
     DGP = DGP, 
     truncation = TRUE, 
-    maxit = 5
+    maxit = 10
   )
   
   new_key <- paste0(orig_key, "_res")
@@ -144,7 +144,7 @@ for (orig_key in names(all_missingnes_data)) {
   all_results[[new_key]] <- method_res
 }
 
-save(all_results, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/all_results.RData")
+save(all_results, file = "~/MissingDataTmle/Simulation/model-based/Results/all_results.RData")
 
 
 #### Result-Plots ####
@@ -186,7 +186,7 @@ plots_Bias <- lapply(missingness_types, function(d) {
 plots_Bias <- do.call(grid.arrange, c(plots_Bias, ncol = 1))
 
 # Save 
-ggsave("~/GitHub/MissingDataTmle/Simulation/model-based/Results/plots_Bias.png",
+ggsave("~/MissingDataTmle/Simulation/model-based/Results/plots_Bias.png",
        plot = plots_Bias,
        width = 8.88, height = 12.50)
 
@@ -199,7 +199,7 @@ plots_Cov <- lapply(missingness_types, function(d) {
 
 plots_Cov <- do.call(grid.arrange, c(plots_Cov, ncol = 1))
 
-ggsave("~/GitHub/MissingDataTmle/Simulation/model-based/Results/plots_Coverage.png",
+ggsave("~/MissingDataTmle/Simulation/model-based/Results/plots_Coverage.png",
        plot = plots_Cov,
        width = 8.88, height = 12.50)
 
@@ -210,7 +210,7 @@ plots_RMSE <- lapply(missingness_types, function(d) {
 
 plots_RMSE <- do.call(grid.arrange, c(plots_RMSE, ncol = 1))
 
-ggsave("~/GitHub/MissingDataTmle/Simulation/model-based/Results/plots_RMSE.png",
+ggsave("~/MissingDataTmle/Simulation/model-based/Results/plots_RMSE.png",
        plot = plots_RMSE,
        width = 8.88, height = 12.50)
 
