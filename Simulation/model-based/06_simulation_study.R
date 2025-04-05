@@ -25,7 +25,7 @@ for (dgp in dgp_list) {
   }
 }
 
-save(big_data_list, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/data_list.RData")
+save(big_data_list, file = "../MissingDataTmle/Simulation/model-based/Results/data_list.RData")
 
 #### Full data assessment #####
 
@@ -37,7 +37,7 @@ for (data_name in names(big_data_list)) {
 }
 
 full_data_proportions
-save(full_data_proportions, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/data_proportions.RData")
+save(full_data_proportions, file = "../MissingDataTmle/Simulation/model-based/Results/data_proportions.RData")
 
 # Check positivity violation in data
 full_positivity_results <- list()
@@ -47,12 +47,12 @@ for (data_name in names(big_data_list)) {
 }
 
 full_positivity_results
-save(full_positivity_results, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/positivity_results.RData")
+save(full_positivity_results, file = "../MissingDataTmle/Simulation/model-based/Results/positivity_results.RData")
 
 # Check power of effect
 effective_power_results <- check_effective_power_bigdata(big_data_list, cores = 10)
 effective_power_results
-save(effective_power_results, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/effective_power_results.RData")
+save(effective_power_results, file = "../MissingDataTmle/Simulation/model-based/Results/effective_power_results.RData")
 
 
 #### Induce Missingness ####
@@ -87,7 +87,7 @@ for (m_type in missingness_types) {
   }
 }
 
-save(all_missingnes_data, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/all_missingnes_data.RData")
+save(all_missingnes_data, file = "../MissingDataTmle/Simulation/model-based/Results/all_missingnes_data.RData")
 
 
 # Create a list to store the missingness data frames for each DGP
@@ -110,7 +110,7 @@ for(d in 1:5) {
 
 # Check missingness for the DGPs
 missing_proportion_list 
-save(missing_proportion_list, file = "~/GitHub/MissingDataTmle/Simulation/model-based/Results/missing_proportion_list.RData")
+save(missing_proportion_list, file = ../MissingDataTmle/Simulation/model-based/Results/missing_proportion_list.RData")
 
 
 
@@ -145,7 +145,7 @@ for (orig_key in names(all_missingnes_data)) {
   all_results[[new_key]] <- method_res
 }
 
-save(all_results, file = "~/MissingDataTmle/Simulation/model-based/Results/all_results.RData")
+save(all_results, file = "../MissingDataTmle/Simulation/model-based/Results/all_results.RData")
 
 
 #### Result-Plots ####
@@ -190,7 +190,7 @@ plots_Bias <- lapply(missingness_types, function(d) {
 plots_Bias <- do.call(grid.arrange, c(plots_Bias, ncol = 1))
 
 # Save 
-ggsave("~/MissingDataTmle/Simulation/model-based/Results/plots_Bias.png",
+ggsave("../MissingDataTmle/Simulation/model-based/Results/plots_Bias.png",
        plot = plots_Bias,
        width = 8.88, height = 12.50)
 
@@ -203,7 +203,7 @@ plots_Cov <- lapply(missingness_types, function(d) {
 
 plots_Cov <- do.call(grid.arrange, c(plots_Cov, ncol = 1))
 
-ggsave("~/MissingDataTmle/Simulation/model-based/Results/plots_Coverage.png",
+ggsave("../MissingDataTmle/Simulation/model-based/Results/plots_Coverage.png",
        plot = plots_Cov,
        width = 8.88, height = 12.50)
 
@@ -214,7 +214,7 @@ plots_RMSE <- lapply(missingness_types, function(d) {
 
 plots_RMSE <- do.call(grid.arrange, c(plots_RMSE, ncol = 1))
 
-ggsave("~/MissingDataTmle/Simulation/model-based/Results/plots_RMSE.png",
+ggsave("../MissingDataTmle/Simulation/model-based/Results/plots_RMSE.png",
        plot = plots_RMSE,
        width = 8.88, height = 12.50)
 

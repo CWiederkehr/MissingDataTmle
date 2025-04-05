@@ -1,4 +1,10 @@
 
+## Acknowledgement: Haodong Li
+# original functions of 'under_HAL', 'get_simu_data', 'ss_estimator', 'get_maxscore', 'calc_ate', 
+# 'num_knots_generator', 'tune_knots' 
+# can be found in: https://github.com/HaodongL/realistic_simu/blob/master/R/2_simulation_HAL.R
+
+
 # subetting helper function
 "%w/o%" <- function(x, y) x[!x %in% y]
 
@@ -420,31 +426,6 @@ count_violations <- function(probs, threshold = 0.01) {
   return(prop_violation)
 }
 
-calculate_weights <- function(pred_A, multiplier = 2, top_percentage = 0.10, bottom_percentage = 0.05) {
-  # Sort the probabilities in ascending order
-  sorted_pred <- sort(pred_A)
-  
-  # Determine the cutoff index for the top 10% highest probabilities
-  top_cutoff_index <- ceiling((1 - top_percentage) * length(pred_A))
-  top_threshold <- sorted_pred[top_cutoff_index]
-  
-  # Determine the cutoff index for the bottom 5% lowest probabilities
-  bottom_cutoff_index <- ceiling(bottom_percentage * length(pred_A))
-  bottom_threshold <- sorted_pred[bottom_cutoff_index]
-  
-  # Apply the multiplier to probabilities greater than or equal to the top threshold
-  # or less than or equal to the bottom threshold
-  weights <- ifelse(pred_A >= top_threshold, 
-                    multiplier * abs(pred_A - 0.5) + 1,
-                    ifelse(pred_A <= bottom_threshold, 
-                           multiplier * 2 * abs(pred_A - 0.5) + 1, 1))
-  
-  # Normalize the weights
-  weights <- weights / sum(weights)
-  
-  return(weights)
-}
-
 calculate_custom_weights <- function(pred_A, real_A = NULL, top_percentage = 0.10, bottom_percentage = 0.05, weight = 5) {
   # Sort the probabilities in ascending order
   sorted_pred <- sort(pred_A)
@@ -486,76 +467,6 @@ calculate_custom_weights <- function(pred_A, real_A = NULL, top_percentage = 0.1
   weights <- weights / sum(weights)
   
   return(weights)
-}
-
-
-underHAL_A <- function(df, aname, w, Nlam, type = "binomial", smooth = 0, degree_crit = 20) {
-  
-  # Check if 'aname' and 'w' are strings
-  if (!is.character(aname) || length(aname) != 1) {
-    stop("Error: 'aname' should be a single string.")
-  }
-  if (!all(sapply(w, is.character))) {
-    stop("Error: 'w' should be a vector of strings.")
-  }
-  # Ensure all covariates are present in the dataframe
-  if (!all(w %in% names(df))) {
-    stop("Error: Some covariates specified in 'w' are not present in the dataframe.")
-  }
-  # Ensure the target variable is present in the dataframe
-  if (!(aname %in% names(df))) {
-    stop("Error: Target variable specified in 'aname' is not present in the dataframe.")
-  }
-  # convert everything to type numeric or integer
-  covariates <- df %>% select(all_of(w)) %>% 
-    mutate_if(sapply(., is.factor), as.numeric)
-  
-  # apply 'underHal' in order to determine the best lambda 
-  res_g <- under_HAL(df=df, yname = aname, xname = w, Nlam = 100, type = "binomial", smooth = smooth, base_knots_0 = 300, degree_crit = degree_crit)
-  
-  # apply HAL with the best lambda value
-  g_fit <- fit_hal(X = covariates,
-                   Y = as.numeric(as.matrix(df %>% select(all_of(aname)))),
-                   family = "binomial",
-                   num_knots = num_knots_generator(
-                     max_degree = ifelse(ncol(covariates) >= degree_crit, 2, 3),
-                     smoothness_orders = smooth,
-                     base_num_knots_0 = 300,
-                     base_num_knots_1 = 100
-                     #ceiling(sqrt(n))
-                   ),
-                   fit_control = list(
-                     cv_select = FALSE,
-                     use_min = TRUE,
-                     lambda.min.ratio = 1e-4,
-                     prediction_bounds = "default"
-                   ),
-                   lambda = res_g$lambda_under,
-                   return_lasso = FALSE
-  )
-  # predict the probabilities
-  pred <- predict(g_fit, new_data = covariates)
-  return(pred)
-}
-
-
-calculate_vio_metrics <- function(simulation_results, w_cols, aname, Nlams, start_index = 1, end_index = 1000, degree_crit = 10) {
-  # Initialize propScore_preds and violations if starting from the beginning
-  if (start_index == 1) {
-    simulation_results$propScore_preds <- vector("list", length = length(simulation_results$simu_data_list))
-    simulation_results$violation <- vector(length = length(simulation_results$simu_data_list))
-  }
-  
-  # Process each dataset within the specified range
-  for (i in start_index:end_index) {
-    print(paste0("PropScore calculation: ", i, "/", end_index-start_index+1))
-    # Perform the underHAL_A function and count violations
-    simulation_results$propScore_preds[[i]] <- underHAL_A(df = simulation_results$simu_data_list[[i]], aname = aname, w = w_cols, 
-                                                          Nlam = Nlam, type = "binomial", smooth = 1, degree_crit = degree_crit)
-    simulation_results$violation[i] <- count_violations(simulation_results$propScore_preds[[i]])
-  }
-  simulation_results$mean_violation <- mean(simulation_results$violation)
-  return(simulation_results)
 }
 
 calculate_vio_metrics2 <- function(simulation_results, w_cols, aname, start_index = 1, end_index = 1000, degree_crit = 10, total_cores = 10) {
@@ -628,72 +539,96 @@ calculate_vio_metrics2 <- function(simulation_results, w_cols, aname, start_inde
   return(simulation_results)
 }
 
-
 # Draw Bootstrap samples
-run_simulation_Alt <- function(df, w_cols, aname, yname, g_fit, Q_fit, rv, weights = NULL, Nlam = 100, 
-                               Sim = 1000, Size = 1, vio = FALSE) {
-  # Check if 'aname', 'yname', and 'w_cols' are strings
-  if (!is.character(aname) || length(aname) != 1) {
-    stop("Error: 'aname' should be a single string.")
+run_simulation <- function(df, w_cols, aname, yname, g_fit, Q_fit, rv, weights = NULL, Nlam = 100, 
+                           Sim = 1000, Size = 1, vio = FALSE, total_cores = 20, degree_crit = 10) {
+  # Validate inputs
+  validate_inputs <- function() {
+    if (!is.character(aname) || length(aname) != 1) stop("Error: 'aname' should be a single string.")
+    if (!is.character(yname) || length(yname) != 1) stop("Error: 'yname' should be a single string.")
+    if (!all(sapply(w_cols, is.character))) stop("Error: 'w_cols' should be a vector of strings.")
+    if (!all(w_cols %in% names(df))) stop("Error: Some covariates specified in 'w_cols' are not present in the dataframe.")
+    if (!(aname %in% names(df))) stop("Error: Target variable specified in 'aname' is not present in the dataframe.")
+    if (!(yname %in% names(df))) stop("Error: Response variable specified in 'yname' is not present in the dataframe.")
   }
-  if (!is.character(yname) || length(yname) != 1) {
-    stop("Error: 'yname' should be a single string.")
-  }
-  if (!all(sapply(w_cols, is.character))) {
-    stop("Error: 'w_cols' should be a vector of strings.")
-  }
-  # Ensure all covariates and target variables are present in the dataframe
-  if (!all(w_cols %in% names(df))) {
-    stop("Error: Some covariates specified in 'w_cols' are not present in the dataframe.")
-  }
-  if (!(aname %in% names(df))) {
-    stop("Error: Target variable specified in 'aname' is not present in the dataframe.")
-  }
-  if (!(yname %in% names(df))) {
-    stop("Error: Response variable specified in 'yname' is not present in the dataframe.")
-  }
+  
+  validate_inputs()
   
   # Initialize storage vectors and lists
   simu_data_list <- vector("list", length = Sim)
   drop_cov_vector <- numeric(Sim)
-  propScore_preds <- if (vio) vector("list", length = Sim) else NULL
-  violation <- if (vio) numeric(Sim) else NULL
   more_than_four <- vector("list", length = Sim)
-  retry_count <- 0
   
-  # Create data-list
-  i <- 1
-  while (i <= Sim) {
-    print(paste0("Bootstrap data: ", i, "/", Sim))
-    # Create bootstrap data
-    simu_output <- get_simu_data(df = df, w = w_cols, a = aname, y = yname, g_fit = g_fit, Q_fit = Q_fit, 
-                                 rv = rv, weights = weights, Size = Size)
+  if (vio) {
+    propScore_preds <- vector("list", length = Sim)
+    violation <- numeric(Sim)
+    error_messages <- vector("list", length = Sim)
+  }
+  
+  # Set up parallel backend
+  cores_per_task <- 2
+  num_clusters <- total_cores / cores_per_task
+  cl <- makeCluster(num_clusters)
+  registerDoParallel(cl, cores_per_task)
+  
+  # Parallel processing
+  simulation_results <- foreach(i = 1:Sim, .packages = c("foreach", "doParallel", "glmnet", "hal9001", "dplyr"),
+                                .export = c("get_simu_data", "count_violations", "num_knots_generator", "%w/o%")) %dopar% {
+                                  simu_output <- get_simu_data(df = df, w = w_cols, a = aname, y = yname, g_fit = g_fit, Q_fit = Q_fit, 
+                                                               rv = rv, weights = weights, Size = Size)
+                                  
+                                  result <- list(data = simu_output$data, drop_cov = simu_output$drop_cov, 
+                                                 more_than_four = simu_output$more_than_four)
+                                  
+                                  if (vio) {
+                                    covariates <- simu_output$data[, w_cols]
+                                    for (col in w_cols) {
+                                      if (is.factor(covariates[[col]])) {
+                                        covariates[[col]] <- as.numeric(covariates[[col]])
+                                      }
+                                    }
+                                    fit_result <- tryCatch({
+                                      fit_model <- fit_hal(
+                                        X = covariates,
+                                        Y = as.numeric(simu_output$data[, aname]),
+                                        family = "binomial",
+                                        smoothness_orders = 1,
+                                        num_knots = num_knots_generator(
+                                          max_degree = ifelse(ncol(covariates) >= degree_crit, 2, 3),
+                                          smoothness_orders = 0,
+                                          base_num_knots_0 = 300,
+                                          base_num_knots_1 = 100
+                                        ),
+                                        return_lasso = FALSE
+                                      )
+                                      prop_scores <- predict(fit_model, new_data = covariates, type = "response")
+                                      violation_count <- count_violations(prop_scores)
+                                      list(propScore_pred = prop_scores, violation = violation_count, error = NULL)
+                                    }, error = function(e) {
+                                      list(propScore_pred = NA, violation = NA, error = conditionMessage(e))
+                                    })
+                                    
+                                    result$propScore_pred <- fit_result$propScore_pred
+                                    result$violation <- fit_result$violation
+                                    result$error <- fit_result$error
+                                  }
+                                  
+                                  result
+                                }
+  
+  stopCluster(cl)
+  
+  # Unpack the parallel results into the original list structure
+  for (i in 1:Sim) {
+    simu_data_list[[i]] <- simulation_results[[i]]$data
+    drop_cov_vector[i] <- simulation_results[[i]]$drop_cov
+    more_than_four[[i]] <- simulation_results[[i]]$more_than_four
     
-    # Attempt to generate propensity score predictions
-    tryCatch({
-      if (vio) {
-        propScore_preds[[i]] <- underHAL_A(df = simu_output$data, aname = aname, w = w_cols, Nlam = Nlam, type = "binomial")
-        violation[i] <- count_violations(propScore_preds[[i]])
-      }
-      
-      # Store simulation data and results
-      simu_data_list[[i]] <- simu_output$data
-      drop_cov_vector[i] <- simu_output$drop_cov
-      more_than_four[[i]] <- simu_output$more_than_four
-      
-      # Move to the next iteration
-      i <- i + 1
-    }, warning = function(w) {
-      # Check if the warning is specifically related to convergence issues
-      warning_msg <- conditionMessage(w)
-      if (grepl("Convergence for 1th lambda value not reached", warning_msg) || 
-          grepl("an empty model has been returned", warning_msg)) {
-        retry_count <<- retry_count + 1
-      } else {
-        # If it's not the specific warning we're looking for, show it
-        warning(warning_msg)
-      }
-    })
+    if (vio) {
+      propScore_preds[[i]] <- simulation_results[[i]]$propScore_pred
+      violation[i] <- simulation_results[[i]]$violation
+      error_messages[[i]] <- simulation_results[[i]]$error
+    }
   }
   
   # Detect presence of numbers in the 'df' name for naming purposes
@@ -712,19 +647,20 @@ run_simulation_Alt <- function(df, w_cols, aname, yname, g_fit, Q_fit, rv, weigh
   result_elements <- list(
     simu_data_list = simu_data_list,
     drop_cov_vector = drop_cov_vector,
-    more_than_four = more_than_four,
-    retry_count = retry_count)
+    more_than_four = more_than_four
+  )
   
   names_result_elements <- c(
     paste0("simu_data_list", suffix),
     paste0("drop_cov_vector", suffix),
-    paste0("more_than_four", suffix),
-    paste0("retry_count", suffix))
+    paste0("more_than_four", suffix)
+  )
   
   if (vio) {
     result_elements$propScore_preds <- propScore_preds
     result_elements$violation <- violation
-    names_result_elements <- c(names_result_elements, paste0("propScore_preds", suffix), paste0("violation", suffix))
+    result_elements$error_messages <- error_messages
+    names_result_elements <- c(names_result_elements, paste0("propScore_preds", suffix), paste0("violation", suffix), paste0("error_messages", suffix))
   }
   
   names(result_elements) <- names_result_elements
