@@ -1,10 +1,5 @@
 
 
-# bringe auch all-results in plots rein
-
-
-
-
 ##### Bias ####
 scenarioOverviewPlot <- function(Result_table, Dag = "A") {
   

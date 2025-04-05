@@ -1,4 +1,4 @@
-set.seed(5)
+
 
 generateData <- function(n, scenario = "sce1", dgp = "DGP1") {
   # Coefficients for different scenarios and DGPs
@@ -601,21 +601,21 @@ coef_list <- list(
       MA = list(intercept = -2.45, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
       MY = list(intercept = -2.50, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.9, U = 0)
     ),
-    C = coefsE <- list(
+    C = list(
       MZ2 = list(intercept = -1.05, U = 0),
       MZ3 = list(intercept = -1.70, MZ2 = 2, U = 0),
       MZ4 = list(intercept = -3.10, MZ2 = 1.9, MZ3 = 1.9, U = 0),
       MA = list(intercept = -3.00, MZ2 = 1.8, MZ3 = 1.8, MZ4 = 1.8, U = 0),
       MY = list(intercept = -3.10, MZ2 = 1.7, MZ3 = 1.7, MZ4 = 1.7, MA = -1.9, U = 0)
     ),
-    D = coefsI <- list(
+    D = list(
       MZ2 = list(intercept = -1.05, U = 0),
       MZ3 = list(intercept = -1.75, MZ2 = 2.2, U = 0),
       MZ4 = list(intercept = -3.45, MZ2 = 2.1, MZ3 = 2.2, U = 0),
       MA = list(intercept = -3.20, MZ2 = 2.0, MZ3 = 2.0, MZ4 = 2.0, U = 0),
       MY = list(intercept = -2.60, MZ2 = 1.0, MZ3 = 1.0, MZ4 = 1.0, MA = -1.0, U = 0)
     ),
-    E = coefsJ <- list(
+    E = list(
       MZ2 = list(intercept = -1.05, U = 0),
       MZ3 = list(intercept = -1.75, MZ2 = 2.1, U = 0),
       MZ4 = list(intercept = -3.30, MZ2 = 2.0, MZ3 = 2.0, U = 0),

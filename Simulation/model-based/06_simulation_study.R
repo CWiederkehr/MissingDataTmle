@@ -1,14 +1,15 @@
 
-source("~/MissingDataTmle/Simulation/model-based/01_used_libraries.R")
-source("~/MissingDataTmle/Simulation/model-based/02_general_Functions.R")
-source("~/MissingDataTmle/Simulation/model-based/03_Data_and_Mis_Functions.R")
-source("~/MissingDataTmle/Simulation/model-based/04_analysis_Functions.R")
-source("~/MissingDataTmle/Simulation/model-based/05_plot_Functions.R")
+source("../MissingDataTmle/Simulation/model-based/01_used_libraries.R")
+source("../MissingDataTmle/Simulation/model-based/02_general_Functions.R")
+source("../MissingDataTmle/Simulation/model-based/03_Data_and_Mis_Functions.R")
+source("../MissingDataTmle/Simulation/model-based/04_analysis_Functions.R")
+source("../MissingDataTmle/Simulation/model-based/05_plot_Functions.R")
 
 #### DGP ####
 
+set.seed(5)
 # Set simulation parameters
-Sim <- 1000   # Number of repetitions
+Sim <- 1000   # Number of repetitions // For brief check use only 10 iterations
 n <- 2000     # Sample size per dataset
 
 dgp_list <- c("DGP1", "DGP2", "DGP3", "DGP4", "DGP5")
@@ -163,6 +164,9 @@ all_measures_list <- lapply(all_obj_names, function(nm) {
 names(all_measures_list) <- all_obj_names
 
 big_table <- do.call(rbind, all_measures_list)
+
+#### Preliminary Results !!
+load("../MissingDataTmle/Simulation/model-based/Results/preliminary_results.RData")
 
 # Post-processing: adjusting factor levels, etc.
 big_table$Scenario <- factor(big_table$Scenario, levels = c("Scenario1", "Scenario2", "Scenario3"))
