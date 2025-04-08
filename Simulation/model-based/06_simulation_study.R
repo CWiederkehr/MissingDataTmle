@@ -110,7 +110,7 @@ for(d in 1:5) {
 
 # Check missingness for the DGPs
 missing_proportion_list 
-save(missing_proportion_list, file = ../MissingDataTmle/Simulation/model-based/Results/missing_proportion_list.RData")
+save(missing_proportion_list, file = "../MissingDataTmle/Simulation/model-based/Results/missing_proportion_list.RData")
 
 
 
